@@ -39,7 +39,7 @@ vignettes/*.pdf
 .Renviron
 
 # Rproject
-.Rproj
+*Rproj
 
 # Folders
 /data/
