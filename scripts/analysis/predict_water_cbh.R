@@ -226,6 +226,7 @@ save(rf_fit, file = "data/models/cbh_rf_with2016.Rda")
 
 # Load model if needed
 #load("data/models/cbh_ranger.Rda")
+# load("data/models/cbh_rf_with2016.Rda")
 
 # Let's see how that looks like in space
 dir.create("data/drone_time_series/cbh/cbh_preds/")

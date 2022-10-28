@@ -7,10 +7,10 @@ library(magick)
 
 
 # Get list of files
-cbh_rgb <- list.files("data/drone_time_series/cbh_2/cbh_norm/",
+cbh_rgb <- list.files("data/drone_time_series/cbh/cbh_norm/",
                         pattern = "tif",
                         full.names = T) 
-cbh_preds <- list.files("data/drone_time_series/cbh_2/cbh_preds/",
+cbh_preds <- list.files("data/drone_time_series/cbh/cbh_preds/",
                         pattern = "tif",
                         full.names = T) 
 
@@ -50,7 +50,7 @@ plot_year <- function(year_interest){
 }
 
 # Specify years and generate plots
-years <- c(2014,2017:2021)
+years <- c(2014,2016:2021)
 list_of_images <- map(years, plot_year)
 
 # Animate plots
@@ -59,12 +59,24 @@ img_joined <- image_join(img_list)
 
 # Export as gif
 image_write_gif(image = img_joined,
-                path = "figures/cbh_2/time_series_cbh_animated.gif",
+                path = "figures/cbh/time_series_cbh_animated.gif",
                 delay = 2)
 
-# Try animating it
-img_joined %>%   
-  image_morph(frames = 10) %>%
-  image_animate(optimize = TRUE,
-                delay = 2/10) %>%
-  image_write("figures/cbh_2/time_series_cbh_animated_morph.gif")
+# Try morphing them
+morphed_images <- map(1:length(years),
+                      function(x){
+                        if(x == length(years)){
+                          return(rep(list_of_images[[x]], 8) %>% map(image_read) %>% image_join())
+                        } else {
+                          image_rep <- rep(list_of_images[[x]], 8) %>% map(image_read) %>% image_join()
+                          morphed <- image_morph(
+                            image_join(
+                            image_read(list_of_images[[x]]),
+                            image_read(list_of_images[[x+1]])))
+                          return(image_join(image_rep, morphed))
+                        }
+                      })
+morphed_images %>% 
+  image_join() %>%
+  image_animate(optimize = TRUE) %>%
+  image_write("figures/cbh/time_series_cbh_animated_morph.gif")
