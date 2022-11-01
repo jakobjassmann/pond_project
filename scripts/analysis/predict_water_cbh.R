@@ -54,7 +54,7 @@ cbh_training$class <- as.factor(cbh_training$class)
 # Balance the dataset by random subsetting
 set.seed(29)
 cbh_training_all <- cbh_training
-cbh_training <- cbh_training %>% group_by(year) %>%
+cbh_training <- cbh_training %>% group_by(year, class) %>%
     sample_n(10000)
 
 # Add gcc and bcc to data frame
