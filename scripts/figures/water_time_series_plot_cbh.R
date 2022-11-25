@@ -18,7 +18,8 @@ area_water_per_year <- map(cbh_preds, function(x){
   rast_obj <- rast(x)
   data.frame(
     year = as.numeric(gsub(".*([0-9]{4}).*", "\\1", x)),
-    area = length(cells(rast_obj, 2)[[1]]) * prod(res(rast_obj)))
+    area = length(cells(rast_obj, 2)[[1]]) * prod(res(rast_obj)),
+    total_area = ncell(rast_obj) * prod(res(rast_obj)))
 }) %>% bind_rows()
 
 # Set time per year
@@ -49,6 +50,19 @@ time_series <- ggplot(area_water_per_year) +
   labs(x = "Year", y = "Open Water [m2]") +
   theme_cowplot()
 save_plot("figures/cbh/time_series_open_water.png",
+          time_series, bg = "white")
+time_series <- ggplot(area_water_per_year) +
+  geom_point(aes(x = year, y = 100*(area/total_area))) +
+  geom_line(aes(x = year, y = 100*(area/total_area), group = 1),
+            data = filter(area_water_per_year, year != 2014)) +
+  geom_line(aes(x = year, y = 100*(area/total_area), group = 1),
+            data = filter(area_water_per_year, year <= 2017),
+            linetype = "dashed") +
+  scale_x_continuous(limits = c(2014, 2021), breaks = 2014:2021) +
+  scale_y_continuous(limits = c(0,25)) +
+  labs(x = "Year", y = "Proportion Water (%)") +
+  theme_cowplot()
+save_plot("figures/cbh/time_series_open_water_prop.png",
           time_series, bg = "white")
 
 # Visualise day of observation

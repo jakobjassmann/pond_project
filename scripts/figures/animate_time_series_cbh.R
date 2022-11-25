@@ -73,15 +73,16 @@ image_write_gif(image = img_joined_nowater,
                 delay = 2)
 
 # Write function to simulate image sliding in
-image_slide <- function(img_1, img_2, n_frames = 100){
-  cat("Preparing slide_in\n")
+image_slide <- function(img_1, img_2, n_frames = 100,
+                        hold_last_frame = 25){
   # Check images are of same dimension if not throw error
   if(!((image_info(img_1)$width == image_info(img_2)$width) &
        (image_info(img_1)$height == image_info(img_1)$height))){
     stop("Images of different dimensions")
   }
   # Calculate crop spacing for second image sliding in:
-  slide_bins <- round(seq(0, image_info(img_1)$width, length = n_frames))
+  slide_bins <- round(seq(0, image_info(img_1)$width, 
+                          length = n_frames))
   # Generate frames
   frames <- map(1:n_frames, function(cutoff){
     cat("Frame", cutoff, "out of", n_frames, 
@@ -91,18 +92,26 @@ image_slide <- function(img_1, img_2, n_frames = 100){
                                            image_info(img_1)$height))
     frame <- image_flatten(image_join(img_1, img_2_chop))
     return(frame)
-  }) %>% image_join
-  cat("Done\n")
+  }) %>% image_join()
+  
+  # Hold last frame for an extra length if requested
+  if(hold_last_frame > 0){
+    last_frames <- rep(img_2, hold_last_frame) %>% image_join()
+    frame <- image_join(frames, last_frames)
+  }
+  
+  cat("\nDone\n")
   # Return frames
   return(frames)
 }
 
 # Generate slides for all image pairs
 img_slide_series <- map(1:length(img_list), function(x){
+  cat("Preparing slide_in No:", x, "\n")
   image_slide(img_list_no_water[[x]], img_list[[x]])
 }) %>% image_join()
 
-image_write_gif(image = ,
+image_write_gif(image = img_slide_series,
                 path = "figures/cbh/time_series_cbh_sliding.gif",
                 delay = 0.04)
 

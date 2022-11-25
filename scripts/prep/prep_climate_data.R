@@ -119,17 +119,27 @@ chokurdah <- data.frame(
 ee_Initialize()
 
 # Get ERA5 image collection (filter 2000-2022)
-era5 <- ee$ImageCollection("ECMWF/ERA5/DAILY") %>%
-  ee$ImageCollection$filterDate("2000-01-01", "2022-01-01") %>%
-  ee$ImageCollection$select(c("mean_2m_air_temperature", "total_precipitation"))
-era5$filterDate("2021-12-10", "2022-01-01")$getInfo()
+era5land <- ee$ImageCollection("ECMWF/ERA5_LAND/HOURLY")$
+  select(list("temperature_2m", "total_precipitation"))
+
+# send Chokurdah coordinates to EE
+chokurdah_ee <- sf_as_ee(chokurdah)
 
 # Extract time-series (using drive here to let it run in the background)
-climate_era5 <- ee_extract(era5, chokurdah, 
-                           fun = ee$Reducer$first(),
-                           scale = 27830,
-                           via = "drive",
-                           container = "chokruda_extractions")
+climate_era5land <- era5land$map(function(image){
+  climate <- image$reduceRegion(ee$Reducer$first(), chokurdah_ee)
+  climate <- climate$set("date_time", image$get("system:index"))
+  ee$Feature(NULL, climate)
+  }) 
+climate_era5land_task <- ee_table_to_drive(climate_era5land,
+                  description = "chokurdah_era5_export",
+                  folder = "chokurdah_era5_export",
+                  )
+climate_era5land_task$start()                           
+ee_check_task_status(task = "AES6MWH7AK2EGF6V4BDWQ4AW")
+ee_drive_to_local(task = climate_era5land_task, 
+                  dsn = "data/climate/ERA5_land_export_Chokurdah.csv")
+
 # If interrupted copy over task outpur manuall from drive.
 # Then read in ERA5 export and parse
 climate_era5 <- t(as.matrix(read.csv("data/climate/ERA5_exports_Chokurdah.csv")))
