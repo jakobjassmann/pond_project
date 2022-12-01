@@ -21,6 +21,8 @@ area_water_per_year <- map(cbh_preds, function(x){
     area = length(cells(rast_obj, 2)[[1]]) * prod(res(rast_obj)),
     total_area = ncell(rast_obj) * prod(res(rast_obj)))
 }) %>% bind_rows()
+write_csv(area_water_per_year,
+          "data/drone_time_series/cbh/area_water_by_year.csv")
 
 # Set time per year
 time_of_year <- data.frame(
