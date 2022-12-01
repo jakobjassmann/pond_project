@@ -25,6 +25,10 @@ pond_polys <- preds_files %>%
     polys <- as.polygons(water_rast)
     polys <- wrap(polys)
   }, cl = cl) 
+
+# Shut down cluster
+stopCluster(cl)
+
 # Unpack polys and convert to sf
 pond_polys <- pond_polys %>%
   map(vect) %>%
@@ -113,4 +117,6 @@ pond_polys_all_years <- map(years, function(year){
 # Save ponds
 save(pond_polys_all_years, file = "data/pond_polys_all_years.Rda")
 
-map(pond_polys_all_years, function(x) plot(st_geometry(x)))
+# Read them back in again for analysis (if needed)
+# read("data/pond_polys_all_years.Rda")
+# map(pond_polys_all_years, function(x) plot(st_geometry(x)))
