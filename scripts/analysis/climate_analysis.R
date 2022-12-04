@@ -21,7 +21,8 @@ map(names(water_climate)[c(-1, -2, -3)],
         var = x,
         r = cor(pull(water_climate, area) , pull(water_climate, !!x)))
     }) %>% bind_rows() %>%
-  arrange(desc(abs(r)))
+  arrange(desc(abs(r))) %>%
+  mutate(r = round(r, 2))
 #           var           r
 # 1        temp_jja_mean -0.70022859
 # 2       precip_son_sum  0.66046811
@@ -42,11 +43,12 @@ map(names(water_climate)[c(-1, -2, -3)],
 
 # Plot climate data for centrury
 temp_cent <- ggplot(climate_data, aes(x = year, y = temp_jja_mean, group = 1)) +
-  geom_line(colour = "red") +
+  geom_line(colour = "#DC6027",
+            size = 1.5) +
   scale_y_continuous(limits = c(2.5,12.5), breaks = seq(2.5,12.5,2.5)) +
   scale_x_continuous(limits = c(1940, 2021)) +
-  labs(x = "", y = "Summer mean temp. (°C)") +
-  theme_cowplot()
+  labs(x = "", y = "Summer temp. (°C)") +
+  theme_cowplot(20)
 save_plot("figures/temp_cent.png",
           temp_cent,
           bg = "white")
@@ -72,12 +74,12 @@ save_plot("figures/temp_dec.png",
 # Plot climate data for centrury
 precip_cent <- ggplot(climate_data, 
                     aes(x = year, y = precip_son_sum)) +
-  geom_col(colour = "blue",
-           fill = "blue") +
+  geom_col(colour = "#0028A5",
+           fill = "#0028A5") +
   scale_y_continuous(limits = c(0, 150)) +
   scale_x_continuous(limits = c(1940, 2021)) +
-  labs(x = "", y = "Sep-Nov precip prev. year (mm)") +
-  theme_cowplot()
+  labs(x = "", y = "Prec. Sep-Nov Y-1 (mm)") +
+  theme_cowplot(20)
 save_plot("figures/autumn_precip_cent.png",
           precip_cent,
           bg = "white")

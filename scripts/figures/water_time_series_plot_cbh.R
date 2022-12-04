@@ -39,20 +39,40 @@ time_of_year <- data.frame(
 time_of_year$year <- as.numeric(format(time_of_year$date, "%Y"))
 time_of_year$doy <- as.numeric(format(time_of_year$date, "%j"))
 
+# Check correlation between water area nad day of year
+cor(time_of_year %>% group_by(year) %>%
+      summarise(max_doy = max(doy)) %>%
+      pull(max_doy), area_water_per_year$area)
+# and max difference
+max(max_doy$max_doy) - min(max_doy$max_doy)
+
 # Visualise time-series 
 time_series <- ggplot(area_water_per_year) +
-  geom_point(aes(x = year, y = area)) +
   geom_line(aes(x = year, y = area, group = 1),
-            data = filter(area_water_per_year, year != 2014)) +
+            data = filter(area_water_per_year, year != 2014),
+            size = 1.5) +
   geom_line(aes(x = year, y = area, group = 1),
             data = filter(area_water_per_year, year <= 2017),
-            linetype = "dashed") +
-  scale_x_continuous(limits = c(2014, 2021), breaks = 2014:2021) +
+            linetype = "dashed",
+            size = 1.5) +
+  geom_errorbar(aes(x = year, ymin = area * 0.9,
+                    ymax = area * 1.1),
+                width = 0.2,
+                size = 1,
+                colour = "#DC6027") +
+  geom_point(aes(x = year, y = area),
+             size = 1.5) +
+  scale_x_continuous(limits = c(2013.7, 2021.3), 
+                     breaks = 2014:2021) +
   scale_y_continuous(limits = c(0,25000)) +
   labs(x = "Year", y = "Open Water [m2]") +
-  theme_cowplot()
+  theme_cowplot(20)
 save_plot("figures/cbh/time_series_open_water.png",
-          time_series, bg = "white")
+          time_series, 
+          bg = "white",
+          base_asp = 1.8)
+
+# Same but as proportion (for UWW250)
 time_series <- ggplot(area_water_per_year) +
   geom_point(aes(x = year, y = 100*(area/total_area))) +
   geom_line(aes(x = year, y = 100*(area/total_area), group = 1),
