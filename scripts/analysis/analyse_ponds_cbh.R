@@ -239,7 +239,7 @@ get_pond_bounds <- function(pond_id){
   return(bounds)
 }
 
-# Loat functions to plot pond time series
+# Load functions to plot pond time series
 source("scripts/figures/plot_ponds_with_dsm.R")
 
 # Plot ponds of interest
@@ -254,4 +254,31 @@ map(1:25,
     })
 
 
-# calculate are of ponds that do not change
+# Map out all ponds of interest in 2014
+library(terra)
+library(tidyterra)
+
+# Load cbh 2014 raster
+cbh_2014_rgb <- rast("data/drone_time_series/cbh/cbh_norm/cbh_2014_norm.tif")
+
+# Plot ponds on raster
+rgb_plot <- ggplot() +
+  geom_spatraster_rgb(
+    data = cbh_2014_rgb,
+    interpolate = F,
+    max_col_value = 1) +
+  geom_sf(data = ponds_other_years[[1]],
+          colour = NA,
+          fill = "#82C4F5") +
+  geom_sf_label(data = ponds_other_years_centroids[[1]],
+                mapping = aes(label = 1:25),
+                nudge_x = -10,
+                nudge_y = 10) +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme_nothing() +
+  theme(panel.border = element_rect(colour = "grey20", fill=NA))
+save_plot("figures/cbh/individual_ponds/individual_pond_locations.png",
+          rgb_plot,
+          base_asp = 1,
+          base_height = 6)
