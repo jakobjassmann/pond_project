@@ -74,18 +74,30 @@ save_plot("figures/cbh/time_series_open_water.png",
 
 # Same but as proportion (for UWW250)
 time_series <- ggplot(area_water_per_year) +
-  geom_point(aes(x = year, y = 100*(area/total_area))) +
   geom_line(aes(x = year, y = 100*(area/total_area), group = 1),
-            data = filter(area_water_per_year, year != 2014)) +
+            data = filter(area_water_per_year, year != 2014),
+            size = 1.5) +
   geom_line(aes(x = year, y = 100*(area/total_area), group = 1),
             data = filter(area_water_per_year, year <= 2017),
-            linetype = "dashed") +
-  scale_x_continuous(limits = c(2014, 2021), breaks = 2014:2021) +
-  scale_y_continuous(limits = c(0,25)) +
+            linetype = "dashed",
+            size = 1.5) +
+  geom_errorbar(aes(x = year, ymin = (100*(area/total_area)) * 0.9,
+                    ymax = (100*(area/total_area)) * 1.1),
+                width = 0.2,
+                size = 1,
+                colour = "#DC6027") +
+  geom_point(aes(x = year, y = 100*(area/total_area)),
+             size = 1.5) +
+  scale_x_continuous(limits = c(2013.7, 2021.3), 
+                     breaks = 2014:2021) +
+  scale_y_continuous(limits = c(0,26),
+                     breaks = seq(0,25,5)) +
   labs(x = "Year", y = "Proportion Water (%)") +
-  theme_cowplot()
+  theme_cowplot(20)
 save_plot("figures/cbh/time_series_open_water_prop.png",
-          time_series, bg = "white")
+          time_series, 
+          bg = "white",
+          base_asp = 1.8)
 
 # Visualise day of observation
 time_of_observation <- ggplot(time_of_year) +

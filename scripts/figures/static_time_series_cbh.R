@@ -155,10 +155,12 @@ preds_plots <- map(1:length(years),
                        data = rgb_rast,
                        interpolate = F,
                        max_col_value = 1) +
+                     geom_sf(data = st_as_sf(as.polygons(rgb_rast, extent = T)),
+                             fill = "grey10", alpha = 0.5) +
                      geom_spatraster(data = preds_rast,
                                      aes(alpha = after_stat(value)),
                                      fill = "#82C4F5") +
-                     scale_alpha_continuous(range = c(0,0.75)) +
+                     scale_alpha_continuous(range = c(0,1)) +
                      annotate("text",
                               x = rgb_ext[1] + (rgb_ext[2] - rgb_ext[1]) * 0.1,
                               y = rgb_ext[3] + (rgb_ext[4] - rgb_ext[3]) * 0.9,
@@ -170,7 +172,7 @@ preds_plots <- map(1:length(years),
                      scale_y_continuous(expand = c(0,0)) +
                      guides() +
                      theme_nothing() +
-                     theme(panel.border = element_rect(colour = "grey20", fill=NA))
+                     theme(panel.border = element_rect(colour = "white", fill=NA))
                    return(rgb_plot)
                  })
 # Arrange and save preds plots
@@ -178,6 +180,52 @@ plot_grid(plotlist = preds_plots,
           nrow = 2,
           ncol = 4) %>%
   save_plot("figures/cbh/whole_area/whole_area_preds.png",
+            .,
+            nrow = 2,
+            ncol = 4,
+            base_height = 2,
+            base_asp = (ext(rast(cbh_rgb[[1]]))[2] -ext(rast(cbh_rgb[[1]]))[1]) / 
+              (ext(rast(cbh_rgb[[1]]))[2] - ext(rast(cbh_rgb[[1]]))[1]))
+
+# Plot predictions only
+preds_only_plots <- map(1:length(years),
+                   function(index){
+                     # Status
+                     cat("Plotting", years[index], "\n")
+                     # Get rast objects from file names
+                     rgb_rast <- rast(cbh_rgb[index])
+                     preds_rast <- rast(cbh_preds[index])
+                     # Retrieve extent
+                     rgb_ext <- ext(rgb_rast)
+                     # Plot rgb image
+                     rgb_plot <- ggplot() +
+                       # geom_spatraster_rgb(
+                       #   data = rgb_rast,
+                       #   interpolate = F,
+                       #   max_col_value = 1) +
+                       geom_spatraster(data = preds_rast,
+                                       aes(alpha = after_stat(value)),
+                                       fill = "#82C4F5") +
+                       scale_alpha_continuous(range = c(0,1)) +
+                       annotate("text",
+                                x = rgb_ext[1] + (rgb_ext[2] - rgb_ext[1]) * 0.1,
+                                y = rgb_ext[3] + (rgb_ext[4] - rgb_ext[3]) * 0.9,
+                                label = years[index],
+                                fontface = "bold",
+                                colour = "white",
+                                hjust = 0) +
+                       scale_x_continuous(expand = c(0,0)) +
+                       scale_y_continuous(expand = c(0,0)) +
+                       guides() +
+                       theme_nothing() +
+                       theme(panel.border = element_rect(colour = "white", fill=NA))
+                     return(rgb_plot)
+                   })
+# Arrange and save preds plots
+plot_grid(plotlist = preds_only_plots,
+          nrow = 2,
+          ncol = 4) %>%
+  save_plot("figures/cbh/whole_area/whole_area_preds_only.png",
             .,
             nrow = 2,
             ncol = 4,
