@@ -30,7 +30,8 @@ pond_bounds <- get_pond_bounds(19)
 water_colour <- "#82C4F5"
 
 plot_pond_ts <- function(pond_bounds, rast_files, preds_files, dsm_files, prefix,
-                      pond_2014 = NA){
+                      pond_2014_rgb = NA,
+                      pond_2014_dsm = NA){
   # Status
   cat("Plotting pond", pond_bounds[,1], "\n")
   
@@ -67,23 +68,33 @@ plot_pond_ts <- function(pond_bounds, rast_files, preds_files, dsm_files, prefix
       theme_nothing() +
       theme(panel.border = element_rect(colour = "grey20", fill=NA))
     
-    # Return plot as ggplot object with year as title and adjusted borders
+    # Add 2014 outline if requested
+    if(sum(!is.na(pond_2014_rgb))){
+      cat("HELLO\n")
+      pond_plot_rgb <- pond_plot_rgb +
+        geom_sf(data = pond_2014_rgb, 
+                colour = "white", 
+                size = 0.2,
+                fill = NA)
+    }
+
+        # Return plot as ggplot object with year as title and adjusted borders
     return(pond_plot_rgb)
   })
   
   # Add a scale bar to the last pont
   rgb_plots[[7]] <- rgb_plots[[7]] +       
     annotate("rect",
-             xmin = pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.6,
+             xmin = pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.55,
              ymin = pond_bounds[,4] + (pond_bounds[,5] - pond_bounds[,4]) * 0.05,
-             xmax = (pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.6) +
+             xmax = (pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.55) +
                round((pond_bounds[,3] - pond_bounds[,2]) / 5),
              ymax = (pond_bounds[,4] + (pond_bounds[,5] - pond_bounds[,4]) * 0.05) +
                round((pond_bounds[,3] - pond_bounds[,2]) / 10) * 0.25,
              fill = "white",
              colour = NA) +
     annotate("text",
-             x =  (pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.6) +
+             x =  (pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.55) +
                round((pond_bounds[,3] - pond_bounds[,2]) / 5) * 0.5,
              y = pond_bounds[,4] + (pond_bounds[,5] - pond_bounds[,4]) * 0.1,
              label = paste0(round(((pond_bounds[,3] - pond_bounds[,2]) / 5)), " m"),
@@ -93,8 +104,8 @@ plot_pond_ts <- function(pond_bounds, rast_files, preds_files, dsm_files, prefix
              hjust = 0.5,
              vjust = 0) +
     annotate("text",
-             x =  (pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.6) +
-               round((pond_bounds[,3] - pond_bounds[,2]) / 5) * 1.2,
+             x =  (pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.55) +
+               round((pond_bounds[,3] - pond_bounds[,2]) / 5) * 1.3,
              y = pond_bounds[,4] + (pond_bounds[,5] - pond_bounds[,4]) * 0.075,
              label = "↑",
              colour = "white",
@@ -103,8 +114,8 @@ plot_pond_ts <- function(pond_bounds, rast_files, preds_files, dsm_files, prefix
              hjust = 0.5,
              vjust = 0) +
   annotate("text",
-           x =  (pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.6) +
-             round((pond_bounds[,3] - pond_bounds[,2]) / 5) * 1.6,
+           x =  (pond_bounds[,2] + (pond_bounds[,3] - pond_bounds[,2]) * 0.55) +
+             round((pond_bounds[,3] - pond_bounds[,2]) / 5) * 1.7,
            y = pond_bounds[,4] + (pond_bounds[,5] - pond_bounds[,4]) * 0.075,
            label = "N",
            colour = "white",
@@ -148,11 +159,13 @@ plot_pond_ts <- function(pond_bounds, rast_files, preds_files, dsm_files, prefix
       theme(panel.border = element_rect(colour = "grey20", fill=NA))
     
     # Add outline of pond in 2014 if it exists
-    dsm_plot <- dsm_plot +
-      geom_sf(data = pond_2014, 
-              colour = "white", 
-              size = 0.2,
-              fill = NA)
+    if(sum(!is.na(pond_2014_dsm))){
+      dsm_plot <- dsm_plot +
+        geom_sf(data = pond_2014_dsm, 
+                colour = "white", 
+                size = 0.2,
+                fill = NA)
+    }
     # Return as ggplot object with no margins and a space holder title
     return(dsm_plot)
   })

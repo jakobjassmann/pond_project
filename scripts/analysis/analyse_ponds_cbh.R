@@ -250,7 +250,8 @@ map(1:25,
                 cbh_preds,
                 cbh_dsm,
                 "cbh",
-                pond_2014 = ponds_other_years[[1]][x,])
+                pond_2014_rgb = NA,
+                pond_2014_dsm = ponds_other_years[[1]][x,])
     })
 
 
