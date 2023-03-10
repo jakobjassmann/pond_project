@@ -585,7 +585,10 @@ spei <- bind_rows(climate_ecad %>%
          spei_12_months = as.numeric(spei(water_bal, 12)$fitted),
          spei_24_months = as.numeric(spei(water_bal, 24)$fitted)) %>%
   filter(year != 1944)
-                  
+
+# Export monthly SPEI data (if required for Nils)
+# write_csv(spei, "data/climate/spei_monthly.csv")
+
 # Merge with final dataset and write out
 chok_annual_climate_final <- chok_annual_climate_final %>% 
   full_join(select(spei, year, month, contains("spei"))%>% filter(month == 8) %>%
