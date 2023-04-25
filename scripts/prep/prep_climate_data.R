@@ -1,8 +1,6 @@
 # Climate data perparations for the Pond Project
 # Jakob J. Assmann jakob.assmann@uzh.ch 27 October 2022
 
-# Test line
-
 # Dependencies
 reticulate::use_condaenv("rgee")
 library(tidyverse)
