@@ -198,3 +198,42 @@ exiftool_call(
 #     file.remove(gsub("(.*)(\\..*)", "\\1_corrected\\2_original", x))
 # })
 
+## Finally, the alpha NA values for the RDG rasters need to be reset
+# Get list of rdg raster files
+rdg_rasters <- list.files("data/drone_time_series/rdg_timeseries/norm/", "tif",
+                          full.names = T)
+
+# Helper function to set NA values
+set_NA <- function(rast_file){
+  cat("Processing", rast_file, "\n")
+  # Load raster
+  rast_to_set <- rast(rast_file)
+  # Set NA values based on alpha band
+  cat("Setting NA's on Band 4 (alpha)... \n")
+  rast_to_set[[4]] <- classify(rast_to_set[[4]], cbind(0, NA))
+  # Copy NA values to other bands
+  for(i in 1:3){
+    cat("Setting Na's on Band", i, "...\n")
+    rast_to_set[[i]][is.na(rast_to_set[[4]][])] <- NA
+  }
+  # Write out raster to temp file
+  cat("Writing raster...\n")
+  writeRaster(rast_to_set, 
+              gsub("(.*)(\\.tif)", "\\1_NAset\\2", rast_file),
+              overwrite = T)
+  # # Unload rast
+  # rm(rast_to_set)
+  # gc()
+  # # Remove old raster
+  # file.remove(rast_file)
+  # # Copy new raster
+  # file.copy(gsub("(.*)(\\.tif)", "\\1_NAset\\2", rast_file),
+  #           rast_file)
+  # # Delete temp raster
+  # file.remove(gsub("(.*)(\\.tif)", "\\1_NAset\\2", rast_file))
+  cat("Done.\n")
+  return(NULL)
+}
+
+# Apply to all files
+lapply(rdg_rasters, set_NA)
