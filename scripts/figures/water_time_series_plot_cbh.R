@@ -9,7 +9,7 @@ library(cowplot)
 
 
 # Get list of files
-cbh_preds <- list.files("data/drone_time_series/cbh/cbh_preds/",
+cbh_preds <- list.files("data/drone_time_series/cbh_timeseries/preds/",
                         pattern = "tif",
                         full.names = T) 
 
@@ -22,22 +22,22 @@ area_water_per_year <- map(cbh_preds, function(x){
     total_area = ncell(rast_obj) * prod(res(rast_obj)))
 }) %>% bind_rows()
 write_csv(area_water_per_year,
-          "data/drone_time_series/cbh/area_water_by_year.csv")
+          "data/drone_time_series/cbh_timeseries/area_water_by_year.csv")
 
-# Set time per year
-time_of_year <- data.frame(
-  date = as.POSIXct(
-    c("2021-07-19",
-      "2020-07-24",
-      "2019-07-12",
-      "2018-07-20",
-      "2017-07-16",
-      "2016-08-18",
-      "2016-08-12",
-      "2016-08-12",
-      "2014-08-10")))
-time_of_year$year <- as.numeric(format(time_of_year$date, "%Y"))
-time_of_year$doy <- as.numeric(format(time_of_year$date, "%j"))
+# # Set time per year
+# time_of_year <- data.frame(
+#   date = as.POSIXct(
+#     c("2021-07-19",
+#       "2020-07-24",
+#       "2019-07-12",
+#       "2018-07-20",
+#       "2017-07-16",
+#       "2016-08-18",
+#       "2016-08-12",
+#       "2016-08-12",
+#       "2014-08-10")))
+# time_of_year$year <- as.numeric(format(time_of_year$date, "%Y"))
+# time_of_year$doy <- as.numeric(format(time_of_year$date, "%j"))
 
 # Check correlation between water area nad day of year
 cor(time_of_year %>% group_by(year) %>%
@@ -50,11 +50,11 @@ max(max_doy$max_doy) - min(max_doy$max_doy)
 time_series <- ggplot(area_water_per_year) +
   geom_line(aes(x = year, y = area, group = 1),
             data = filter(area_water_per_year, year != 2014),
-            size = 1.5) +
+            linewidth = 1.5) +
   geom_line(aes(x = year, y = area, group = 1),
-            data = filter(area_water_per_year, year <= 2017),
+            data = filter(area_water_per_year, year <= 2016),
             linetype = "dashed",
-            size = 1.5) +
+            linewidth = 1.5) +
   geom_errorbar(aes(x = year, ymin = area * 0.9,
                     ymax = area * 1.1),
                 width = 0.2,
@@ -76,22 +76,24 @@ save_plot("figures/cbh/time_series_open_water.png",
 time_series <- ggplot(area_water_per_year) +
   geom_line(aes(x = year, y = 100*(area/total_area), group = 1),
             data = filter(area_water_per_year, year != 2014),
-            size = 1.5) +
+            linewidth = 1.5,
+            colour = "#1E1D40") +
   geom_line(aes(x = year, y = 100*(area/total_area), group = 1),
-            data = filter(area_water_per_year, year <= 2017),
+            data = filter(area_water_per_year, year <= 2016),
             linetype = "dashed",
-            size = 1.5) +
-  geom_errorbar(aes(x = year, ymin = (100*(area/total_area)) * 0.9,
-                    ymax = (100*(area/total_area)) * 1.1),
+            linewidth = 1.5,
+            colour = "#1E1D40") +
+  geom_errorbar(aes(x = year, ymin = (100*(area/total_area)) * 0.8,
+                    ymax = (100*(area/total_area)) * 1.2),
                 width = 0.2,
-                size = 1,
-                colour = "#DC6027") +
+                linewidth = 1,
+                colour = "#1E1D40") +
   geom_point(aes(x = year, y = 100*(area/total_area)),
              size = 1.5) +
   scale_x_continuous(limits = c(2013.7, 2021.3), 
                      breaks = 2014:2021) +
-  scale_y_continuous(limits = c(0,26),
-                     breaks = seq(0,25,5)) +
+  scale_y_continuous(limits = c(0,12),
+                     breaks = seq(0,12,2)) +
   labs(x = "Year", y = "Proportion Water (%)") +
   theme_cowplot(20)
 save_plot("figures/cbh/time_series_open_water_prop.png",
