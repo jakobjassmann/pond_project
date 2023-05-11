@@ -285,17 +285,14 @@ dir.create("data/drone_time_series/cbh_timeseries/preds/")
 dir.create("data/drone_time_series/tlb_timeseries/preds/")
 dir.create("data/drone_time_series/rdg_timeseries/preds/")
 
-preds_rasters <- map(c("cbh", "tlb", "rdg"), function(site_interest) {
-    site_raster_files <- list.files(paste0("data/drone_time_series/", site_interest, "_timeseries/norm/"), full.names = TRUE)
-    map(site_raster_files, function(rast_file) {
-        year_interest <- gsub(".*(cbh_[0-9]{4}.*)\\.tif", "\\1", rast_file)
+preds_rasters <- lapply(c("cbh", "tlb", "rdg"), function(site_interest) {
+    site_raster_files <- list.files(paste0("data/drone_time_series/", site_interest, "_timeseries/norm"), full.names = TRUE)
+    pblapply(site_raster_files, function(rast_file) {
+        year_interest <- gsub(".*/([a-z]{3}_[0-9]{4}.*)\\.tif", "\\1", rast_file)
         cat("Running projections for", site_interest, "and", year_interest, ":\n")
         cat("Preparing data...\n")
         norm_raster <- rast(rast_file)
         names(norm_raster) <- c("R", "G", "B", "alpha")
-        # names(mean_raster) <- c("R_mean", "G_mean", "B_mean", "alpha_mean")
-        # names(sd_raster) <- c("R_sd", "G_sd", "B_sd", "alpha_sd")
-        # norm_raster <- crop(norm_raster, mean_raster)
 
         # Calculate rcc, gcc and bcc
         rcc <- norm_raster[["R"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
@@ -311,10 +308,10 @@ preds_rasters <- map(c("cbh", "tlb", "rdg"), function(site_interest) {
         preds <- terra::predict(predictors, rf_fit)
         cat("Writing raster...\n")
         writeRaster(preds,
-            filename = paste0("data/drone_time_series", site_interest, "_timeseries/preds/", site_interest, "_", year_interest, "_preds.tif"),
+            filename = paste0("data/drone_time_series/", site_interest, "_timeseries/preds/", site_interest, "_", year_interest, "_preds.tif"),
             overwrite = T
         )
         cat(year_interest, "done.\n")
         return(preds)
-    })
+    }, cl = 9)
 }) 
