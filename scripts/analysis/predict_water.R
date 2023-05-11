@@ -275,10 +275,10 @@ map(unique(validation$site), acc_per_site) %>%
   write_csv("tables/rf_acc_per_site.csv")
 
 # Save the model
-save(rf_fit, file = "data/models/cbh_rf_may2023.Rda")
+save(rf_fit, file = "data/models/rf_may2023.Rda")
 
 # Load model if needed
-load("data/models/cbh_rf_may2023.Rda")
+load("data/models/rf_may2023.Rda")
 
 # Let's see how that looks like in space
 dir.create("data/drone_time_series/cbh_timeseries/preds/")
