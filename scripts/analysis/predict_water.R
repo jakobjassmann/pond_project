@@ -4,7 +4,6 @@
 library(terra)
 library(tidyverse)
 library(sf)
-library(ranger)
 library(caret)
 library(randomForest)
 library(ggplot2)
@@ -16,11 +15,12 @@ library(parallel)
 library(pbapply)
 
 # Load training polys from CBG
-cbh_polys <- read_sf("data/training/cbh_two_class_polys.shp")
-tlb_polys <- read_sf("data/training/tlb_two_class_polys.shp") %>%
+cbh_polys <- read_sf("data/training/cbh_training.gpkg") %>%
   mutate(., id = 1:nrow(.))
-rdg_polys <- read_sf("data/training/rdg_two_class_polys.shp") %>%
-  mutate(., id = 1:nrow(.))
+# tlb_polys <- read_sf("data/training/tlb_two_class_polys.shp") %>%
+#   mutate(., id = 1:nrow(.))
+# rdg_polys <- read_sf("data/training/rdg_two_class_polys.shp") %>%
+#   mutate(., id = 1:nrow(.))
 
 # Load list of raster files 
 raster_files_cbh <- list.files("data/drone_time_series/cbh_timeseries/norm/",
@@ -30,7 +30,9 @@ raster_files_tlb <- list.files("data/drone_time_series/tlb_timeseries/norm/",
 raster_files_rdg <- list.files("data/drone_time_series/rdg_timeseries/norm/",
                            full.names = T) %>%
                            .[!(grepl("2016", .) | grepl("2019_b", .))]
-raster_files_all <- c(raster_files_cbh, raster_files_tlb, raster_files_rdg)
+raster_files_all <- c(
+  raster_files_cbh#,  raster_files_tlb#, raster_files_rdg
+)
 
 # Write quick helper function to grab training pixels for each year and site
 get_training_vals <- function(raster_file){
@@ -41,14 +43,15 @@ get_training_vals <- function(raster_file){
   norm_raster <- rast(raster_file)
   
   # Get year
-  year_interest <- gsub(".*([0-9]{4}).*","\\1", raster_file)
+  year_interest <- gsub(".*([0-9]{4}_?.*)\\..*","\\1", raster_file)
   
   # Get site
   site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", raster_file)
   
   # Subset polys for year
   polys <- get(paste0(site_interest, "_polys"))
-  polys <- polys[pull(polys, paste0(year_interest)) == 1, ]
+  polys <- filter(polys, year == year_interest)
+  #polys <- polys[pull(polys, paste0(year_interest)) == 1, ]
   polys$ID <- 1:nrow(polys)
   
   # Extract training data
@@ -77,9 +80,9 @@ training_all$class <- as.factor(training_all$class)
 # Balance the dataset by random subsetting
 set.seed(29)
 training_original <- training_all
-training_all <- training_all %>% group_by(year, class) %>%
+training_all <- training_original %>% group_by(year, class) %>%
   na.omit() %>%
-  sample_n(10000)
+  sample_n(5000)
 
 # Add gcc and bcc to data frame
 training_all <- training_all %>%
@@ -275,17 +278,18 @@ map(unique(validation$site), acc_per_site) %>%
   write_csv("tables/rf_acc_per_site.csv")
 
 # Save the model
-save(rf_fit, file = "data/models/rf_may2023.Rda")
+save(rf_fit, file = "data/models/rf_oct2023.Rda")
 
 # Load model if needed
-load("data/models/rf_may2023.Rda")
+load("data/models/rf_oct2023.Rda")
 
 # Let's see how that looks like in space
 dir.create("data/drone_time_series/cbh_timeseries/preds/")
 dir.create("data/drone_time_series/tlb_timeseries/preds/")
 dir.create("data/drone_time_series/rdg_timeseries/preds/")
 
-preds_rasters <- lapply(c("cbh", "tlb", "rdg"), function(site_interest) {
+preds_rasters <- lapply(c("cbh"#, "tlb", "rdg"
+), function(site_interest) {
     site_raster_files <- list.files(paste0("data/drone_time_series/", site_interest, "_timeseries/norm"), full.names = TRUE)
     pblapply(site_raster_files, function(rast_file) {
         year_interest <- gsub(".*/([a-z]{3}_[0-9]{4}.*)\\.tif", "\\1", rast_file)
