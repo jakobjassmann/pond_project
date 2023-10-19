@@ -21,10 +21,20 @@ cbh_polys <- read_sf("data/training/cbh_training.gpkg") %>%
 #   mutate(., id = 1:nrow(.))
 # rdg_polys <- read_sf("data/training/rdg_two_class_polys.shp") %>%
 #   mutate(., id = 1:nrow(.))
-
-# Load list of raster files 
+cbh_polys[cbh_polys$year == "2019",]$year <- "2019_a" 
+# Load list of raster files
 raster_files_cbh <- list.files("data/drone_time_series/cbh_timeseries/norm/",
-                           full.names = T)
+  full.names = T
+)
+raster_files_focal <- c(
+  list.files("data/drone_time_series/cbh_timeseries/focal_bcc_sd_9",
+    full.names = T
+  ),
+  list.files("data/drone_time_series/cbh_timeseries/focal_rcc_sd_9",
+    full.names = T
+  )
+)
+
 raster_files_tlb <- list.files("data/drone_time_series/tlb_timeseries/norm/",
                            full.names = T)
 raster_files_rdg <- list.files("data/drone_time_series/rdg_timeseries/norm/",
@@ -48,6 +58,16 @@ get_training_vals <- function(raster_file){
   # Get site
   site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", raster_file)
   
+  # Load corresponding focal rasters
+  focal_raster_rcc <- raster_files_focal[grepl(site_interest, raster_files_focal)] %>%
+    .[grepl(year_interest, .)] %>%
+    .[grepl("rcc", .)] %>%
+    rast()
+  focal_raster_bcc <- raster_files_focal[grepl(site_interest, raster_files_focal)] %>%
+    .[grepl(year_interest, .)] %>%
+    .[grepl("bcc", .)] %>%
+    rast()
+  
   # Subset polys for year
   polys <- get(paste0(site_interest, "_polys"))
   polys <- filter(polys, year == year_interest)
@@ -55,16 +75,24 @@ get_training_vals <- function(raster_file){
   polys$ID <- 1:nrow(polys)
   
   # Extract training data
-  training_vals_norm <- terra::extract(norm_raster, vect(polys))[,1:4]
+  training_vals_norm <- terra::extract(norm_raster, vect(polys))[, 1:4]
+  training_vals_focal_rcc <- terra::extract(focal_raster_rcc, vect(polys))[, 1:2]
+  training_vals_focal_bcc <- terra::extract(focal_raster_bcc, vect(polys))[, 1:2]
   
   # Adjust column names of data frame
   colnames(training_vals_norm) <- c("ID", "R", "G", "B")
-  
+  colnames(training_vals_focal_rcc) <- c("ID", gsub(".*(rcc.*)\\.tif", "\\1", sources(focal_raster_rcc)))
+  colnames(training_vals_focal_bcc) <- c("ID", gsub(".*(bcc.*)\\.tif", "\\1", sources(focal_raster_bcc)))
+
+  # bind training values
+  training_vals_all <- cbind(training_vals_norm, 
+  select(training_vals_focal_rcc, -ID),
+  select(training_vals_focal_bcc, -ID))
   # Combine training data with metadata (incl. class info) of the polys
   final_training <- polys %>%
     st_drop_geometry() %>%
     select(ID, id, class) %>%
-    full_join(training_vals_norm) %>%
+    full_join(training_vals_all) %>%
     select(-ID) %>%
     mutate(year = year_interest) %>%
     mutate(site = site_interest)
@@ -82,7 +110,7 @@ set.seed(29)
 training_original <- training_all
 training_all <- training_original %>% group_by(year, class) %>%
   na.omit() %>%
-  sample_n(5000)
+  sample_n(10000)
 
 # Add gcc and bcc to data frame
 training_all <- training_all %>%
@@ -109,7 +137,13 @@ sep_stats <- bind_rows(separability(filter(training_all, class == "water") %>% u
                          select(-gcc, -gcc.1),
                        separability(filter(training_all, class == "water") %>% ungroup() %>% select(bcc), 
                                     filter(training_all, class == "other") %>% ungroup() %>% select(bcc)) %>%
-                         select(-bcc, -bcc.1),)
+                         select(-bcc, -bcc.1),
+                         separability(filter(training_all, class == "water") %>% ungroup() %>% select(rcc_sd_9), 
+                                    filter(training_all, class == "other") %>% ungroup() %>% select(rcc_sd_9)) %>%
+                         select(-rcc_sd_9, -rcc_sd_9.1),
+                         separability(filter(training_all, class == "water") %>% ungroup() %>% select(bcc_sd_9), 
+                                    filter(training_all, class == "other") %>% ungroup() %>% select(bcc_sd_9)) %>%
+                         select(-bcc_sd_9, -bcc_sd_9.1))
 sep_stats$band <- row.names(sep_stats)
 
 # Look at group and variable relationships
@@ -177,12 +211,34 @@ plot_grid(
     scale_y_continuous(limits = c(0,1)) +
     theme_cowplot() +
     theme(legend.position = "none"),
+      ggplot(training_all) +
+    geom_violin(aes(x = class, y = rcc_sd_9, fill = class)) +
+    geom_text(data = sep_stats %>% filter(band == "rcc_sd_9"), 
+              aes(x = 2.5, y = 0.3, 
+                  label = paste("TD =", 
+                                formatC(TD, format = "f", digits = 2)),
+                  hjust = 1,
+                  fontface = "bold")) +
+    scale_y_continuous(limits = c(0,0.3)) +
+    theme_cowplot() +
+    theme(legend.position = "none"),
+      ggplot(training_all) +
+    geom_violin(aes(x = class, y = bcc_sd_9, fill = class)) +
+    geom_text(data = sep_stats %>% filter(band == "bcc_sd_9"), 
+              aes(x = 2.5, y = 0.5, 
+                  label = paste("TD =", 
+                                formatC(TD, format = "f", digits = 2)),
+                  hjust = 1,
+                  fontface = "bold")) +
+    scale_y_continuous(limits = c(0,0.5)) +
+    theme_cowplot() +
+    theme(legend.position = "none"),
   nrow = 2,
-  labels = paste0(letters[1:6], ")")) %>%
+  labels = paste0(letters[1:8], ")")) %>%
     save_plot("figures/sepparation_all.png",
     .,
     nrow = 2,
-    ncol = 2,
+    ncol = 4,
     base_asp = 1.2,
     bg = "white")
 
@@ -219,7 +275,7 @@ plot_sep_band <- function(band = "R"){
             base_height = 6)
   return(NULL)
 }
-c("R", "G", "B", "rcc", "gcc", "bcc") %>% map(plot_sep_band)
+c("R", "G", "B", "rcc", "gcc", "bcc", "rcc_sd_9", "bcc_sd_9") %>% map(plot_sep_band)
 
 # Split into training and validation
 training_all$id <- 1:nrow(training_all)
@@ -230,7 +286,7 @@ validation <- filter(training_all, !(id %in% training$id))
 
 
 # Train random forest model
-rf_fit <- randomForest(class ~ rcc + bcc + R,
+rf_fit <- randomForest(class ~ rcc + bcc + R + rcc_sd_9 + bcc_sd_9,
              data = select(training, -id))
 
 # Validate on test set
@@ -278,7 +334,7 @@ map(unique(validation$site), acc_per_site) %>%
   write_csv("tables/rf_acc_per_site.csv")
 
 # Save the model
-save(rf_fit, file = "data/models/rf_oct2023.Rda")
+save(rf_fit, file = "data/models/rf_2023-10-19.Rda")
 
 # Load model if needed
 load("data/models/rf_oct2023.Rda")
@@ -288,8 +344,7 @@ dir.create("data/drone_time_series/cbh_timeseries/preds/")
 dir.create("data/drone_time_series/tlb_timeseries/preds/")
 dir.create("data/drone_time_series/rdg_timeseries/preds/")
 
-preds_rasters <- lapply(c("cbh"#, "tlb", "rdg"
-), function(site_interest) {
+preds_rasters <- lapply(c("cbh"), function(site_interest) {
     site_raster_files <- list.files(paste0("data/drone_time_series/", site_interest, "_timeseries/norm"), full.names = TRUE)
     pblapply(site_raster_files, function(rast_file) {
         year_interest <- gsub(".*/([a-z]{3}_[0-9]{4}.*)\\.tif", "\\1", rast_file)
@@ -306,8 +361,18 @@ preds_rasters <- lapply(c("cbh"#, "tlb", "rdg"
         bcc <- norm_raster[["B"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
         names(bcc) <- "bcc"
 
+        # Load focal rasters
+        focal_bcc <- rast(paste0("data/drone_time_series/", site_interest,
+                                 "_timeseries/focal_bcc_sd_3/", year_interest, 
+                                 "_bcc_sd_3.tif"))
+        names(focal_bcc) <- "bcc_sd_3"
+        focal_rcc <- rast(paste0("data/drone_time_series/", site_interest,
+                                 "_timeseries/focal_rcc_sd_3/", year_interest, 
+                                 "_rcc_sd_3.tif"))
+        names(focal_rcc) <- "rcc_sd_3"
+        
         # Collate predictors
-        predictors <- c(norm_raster, rcc, gcc, bcc)
+        predictors <- c(norm_raster, rcc, gcc, bcc, focal_bcc, focal_rcc)
         cat("Predicting values...\n")
         preds <- terra::predict(predictors, rf_fit)
         cat("Writing raster...\n")
