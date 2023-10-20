@@ -2,26 +2,26 @@ Confusion Matrix and Statistics
 
           Reference
 Prediction other water
-     other 15280   811
-     water   720 15189
+     other 29998  1180
+     water  1002 29825
                                           
-               Accuracy : 0.9522          
-                 95% CI : (0.9498, 0.9545)
+               Accuracy : 0.9648          
+                 95% CI : (0.9633, 0.9662)
     No Information Rate : 0.5             
-    P-Value [Acc > NIR] : < 2e-16         
+    P-Value [Acc > NIR] : < 2.2e-16       
                                           
-                  Kappa : 0.9043          
+                  Kappa : 0.9296          
                                           
- Mcnemar's Test P-Value : 0.02144         
+ Mcnemar's Test P-Value : 0.0001511       
                                           
-            Sensitivity : 0.9550          
-            Specificity : 0.9493          
-         Pos Pred Value : 0.9496          
-         Neg Pred Value : 0.9547          
+            Sensitivity : 0.9677          
+            Specificity : 0.9619          
+         Pos Pred Value : 0.9622          
+         Neg Pred Value : 0.9675          
              Prevalence : 0.5000          
-         Detection Rate : 0.4775          
+         Detection Rate : 0.4838          
    Detection Prevalence : 0.5028          
-      Balanced Accuracy : 0.9522          
+      Balanced Accuracy : 0.9648          
                                           
        'Positive' Class : other           
                                           

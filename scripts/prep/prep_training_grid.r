@@ -86,5 +86,79 @@ write_csv(sample_combos, "data/training/grid_cells_to_annotate.csv")
 # CHH 2019_b
 sample(1:25, 3)
 
-# too little sample data in 2016 -> generate one more random cell
+# too little sample data in cbh 2016 -> generate one more random cell
 sample(1:25,1)
+
+# Generate three addtional ones per year
+sample_combos <- map(sites, function(site) {
+    map2(years, site, function(y, site) {
+        data.frame(site = site, year = y, cells = sample(1:25, 3))
+    })
+}) %>%
+    bind_rows() %>%
+        arrange(site, year)
+write_csv(sample_combos, "data/training/grid_cells_to_annotate_2.csv")
+
+# one more cell for cbh 2016 as one was double counted
+sample(1:25,1)
+
+# one more cell for cbh 2018 as one contained no water
+sample(1:25,1) # double counted
+sample(1:25,1)
+
+# two more cells for cbh 2019 as the two new suggested ones don't contain water
+sample(1:25,2)
+# Generate four more sells for 2019_b
+sample(1:25, 4) # one double
+sample(1:25, 1) # two more cells with water required
+sample(1:25,2)
+
+# For tlb and rdg, I generate 6 grid cells per year straight away
+# that way we can avoid duplicates and don't have to re-generate again and again
+# Generate three addtional ones per year
+set.seed(23)
+site <- "tlb"
+years <- c("2014", "2016", "2017_b", "2018", "2019_a", "2019_b", "2020", "2021")
+sample_combos <- map2(years, site, function(y, site) {
+        data.frame(site = site, year = y, cells = sample(1:25, 6))
+    }) %>%
+    bind_rows() %>%
+        arrange(site, year)
+write_csv(sample_combos, "data/training/grid_cells_to_annotate_tlb.csv")
+
+site <- "rdg"
+years <- c("2014", "2017", "2018", "2019_a", "2019_c", "2020", "2021")
+sample_combos <- map2(years, site, function(y, site) {
+        data.frame(site = site, year = y, cells = sample(1:25, 6))
+    }) %>%
+    bind_rows() %>%
+        arrange(site, year)
+write_csv(sample_combos, "data/training/grid_cells_to_annotate_rdg.csv")
+
+#  tlb 2019_a did not have enought water (few ponds) generating some extra cells here
+sample(c(3, 4, 11, 16, 17), 2)
+
+# Too little water in tlb 2021 -> add one more sample of one of the following cells
+sample(c(3, 4, 16, 17),1)
+
+# rdg 2014 requirs cell 25 but this is empty -> generate a new one
+sample(c(1:25), 1)
+
+# rdg 2017 requirs cell 25 but this is empty -> generate a new one
+sample(c(1:25), 1) # 22 already given
+sample(c(1:25), 1)
+
+# rdg 2018 requirs cell 1 but this is empty -> generate a new one
+sample(c(1:25), 1)
+
+# rdg 2019 requirs cell 1 and 25 but this these are empty -> generate a new ones
+sample(c(1:25), 1)
+sample(c(1:25), 1)
+
+# rdg 2020 requirs cell 25 but this is empty -> generate a new one
+sample(c(1:25), 1)
+
+# One more cell with lots of water required for tlb 2019_a
+# and one addtional one
+set.seed(34)
+sample(c(3,4,16,17),1)

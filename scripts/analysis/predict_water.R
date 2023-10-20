@@ -14,34 +14,47 @@ library(purrr)
 library(parallel)
 library(pbapply)
 
-# Load training polys from CBG
+# Load training polys
 cbh_polys <- read_sf("data/training/cbh_training.gpkg") %>%
   mutate(., id = 1:nrow(.))
-# tlb_polys <- read_sf("data/training/tlb_two_class_polys.shp") %>%
-#   mutate(., id = 1:nrow(.))
-# rdg_polys <- read_sf("data/training/rdg_two_class_polys.shp") %>%
-#   mutate(., id = 1:nrow(.))
 cbh_polys[cbh_polys$year == "2019",]$year <- "2019_a" 
+tlb_polys <- read_sf("data/training/tlb_training.gpkg") %>%
+  mutate(., id = 1:nrow(.))
+rdg_polys <- read_sf("data/training/rdg_training.gpkg") %>%
+  mutate(., id = 1:nrow(.))
+
 # Load list of raster files
 raster_files_cbh <- list.files("data/drone_time_series/cbh_timeseries/norm/",
   full.names = T
 )
+raster_files_tlb <- list.files("data/drone_time_series/tlb_timeseries/norm/",
+                           full.names = T)
+raster_files_rdg <- list.files("data/drone_time_series/rdg_timeseries/norm/",
+                           full.names = T) %>%
+                           .[!(grepl("2016", .) | grepl("2019_b", .))]
 raster_files_focal <- c(
   list.files("data/drone_time_series/cbh_timeseries/focal_bcc_sd_9",
     full.names = T
   ),
   list.files("data/drone_time_series/cbh_timeseries/focal_rcc_sd_9",
     full.names = T
+  ),
+    list.files("data/drone_time_series/tlb_timeseries/focal_bcc_sd_9",
+    full.names = T
+  ),
+  list.files("data/drone_time_series/tlb_timeseries/focal_rcc_sd_9",
+    full.names = T
+  ),
+    list.files("data/drone_time_series/rdg_timeseries/focal_bcc_sd_9",
+    full.names = T
+  ),
+  list.files("data/drone_time_series/rdg_timeseries/focal_rcc_sd_9",
+    full.names = T
   )
 )
 
-raster_files_tlb <- list.files("data/drone_time_series/tlb_timeseries/norm/",
-                           full.names = T)
-raster_files_rdg <- list.files("data/drone_time_series/rdg_timeseries/norm/",
-                           full.names = T) %>%
-                           .[!(grepl("2016", .) | grepl("2019_b", .))]
 raster_files_all <- c(
-  raster_files_cbh#,  raster_files_tlb#, raster_files_rdg
+  raster_files_cbh,  raster_files_tlb, raster_files_rdg
 )
 
 # Write quick helper function to grab training pixels for each year and site
@@ -104,13 +117,54 @@ get_training_vals <- function(raster_file){
 training_all <- pblapply(raster_files_all, get_training_vals) %>% bind_rows()
 training_all <- arrange(training_all, class)
 training_all$class <- as.factor(training_all$class)
+training_all$row_id <- 1:nrow(training_all)
 
 # Balance the dataset by random subsetting
 set.seed(29)
-training_original <- training_all
-training_all <- training_original %>% group_by(year, class) %>%
+training_original <- training_all 
+# First cbh (10k per year and class)
+training_all <- training_original %>%
+  filter(site == "cbh") %>%
+  group_by(year, site, class) %>%
   na.omit() %>%
   sample_n(10000)
+# Second tlb (5k per year and class)
+training_all <- training_original %>%
+  filter(site == "tlb") %>%
+  group_by(year, site, class) %>%
+  na.omit() %>%
+  sample_n(5000) %>%
+  bind_rows(training_all)
+# Third rdg (5k per year and class)
+training_all <- training_original %>%
+  filter(site == "rdg", class != "water") %>%
+  group_by(year, site, class) %>%
+  na.omit() %>%
+  sample_n(5000) %>%
+  bind_rows(training_all)
+# Check final distribution of classes (expected: unbalanced due to rdg!)
+training_all %>% group_by(class) %>% tally()
+# Add water training from rdg
+training_all <- training_original %>%
+  filter(site == "rdg", class == "water") %>%
+  group_by(year, site, class) %>%
+  na.omit() %>%
+  bind_rows(training_all)
+# Check again
+(training_balance <- training_all %>% group_by(class) %>% tally())
+# Balance out water class using a random sample across all years and sites
+# from remaining samples
+training_all <- training_original %>%
+  filter(!(row_id %in% training_all$row_id)) %>%
+  filter(class == "water") %>%
+  ungroup() %>%
+  na.omit() %>%
+  sample_n(training_balance$n[1] - training_balance$n[2]) %>%
+  group_by(year, site, class) %>%
+  bind_rows(training_all)
+# Final check
+(training_balance <- training_all %>% group_by(class) %>% tally())
+
 
 # Add gcc and bcc to data frame
 training_all <- training_all %>%
@@ -120,30 +174,48 @@ training_all <- training_all %>%
   na.omit()
 
 # Calculate separability
-sep_stats <- bind_rows(separability(filter(training_all, class == "water") %>% ungroup() %>% select(R), 
-                                    filter(training_all, class == "other") %>% ungroup() %>% select(R)) %>%
-                         select(-R, -R.1),
-                       separability(filter(training_all, class == "water") %>% ungroup() %>% select(G), 
-                                    filter(training_all, class == "other") %>% ungroup() %>% select(G)) %>%
-                         select(-G, -G.1),
-                       separability(filter(training_all, class == "water") %>% ungroup() %>% select(B), 
-                                    filter(training_all, class == "other") %>% ungroup() %>% select(B)) %>%
-                         select(-B, -B.1),
-                       separability(filter(training_all, class == "water") %>% ungroup() %>% select(rcc), 
-                                    filter(training_all, class == "other") %>% ungroup() %>% select(rcc)) %>%
-                         select(-rcc, -rcc.1),
-                       separability(filter(training_all, class == "water") %>% ungroup() %>% select(gcc), 
-                                    filter(training_all, class == "other") %>% ungroup() %>% select(gcc)) %>%
-                         select(-gcc, -gcc.1),
-                       separability(filter(training_all, class == "water") %>% ungroup() %>% select(bcc), 
-                                    filter(training_all, class == "other") %>% ungroup() %>% select(bcc)) %>%
-                         select(-bcc, -bcc.1),
-                         separability(filter(training_all, class == "water") %>% ungroup() %>% select(rcc_sd_9), 
-                                    filter(training_all, class == "other") %>% ungroup() %>% select(rcc_sd_9)) %>%
-                         select(-rcc_sd_9, -rcc_sd_9.1),
-                         separability(filter(training_all, class == "water") %>% ungroup() %>% select(bcc_sd_9), 
-                                    filter(training_all, class == "other") %>% ungroup() %>% select(bcc_sd_9)) %>%
-                         select(-bcc_sd_9, -bcc_sd_9.1))
+sep_stats <- bind_rows(
+  separability(
+    filter(training_all, class == "water") %>% ungroup() %>% select(R),
+    filter(training_all, class == "other") %>% ungroup() %>% select(R)
+  ) %>%
+    select(-R, -R.1),
+  separability(
+    filter(training_all, class == "water") %>% ungroup() %>% select(G),
+    filter(training_all, class == "other") %>% ungroup() %>% select(G)
+  ) %>%
+    select(-G, -G.1),
+  separability(
+    filter(training_all, class == "water") %>% ungroup() %>% select(B),
+    filter(training_all, class == "other") %>% ungroup() %>% select(B)
+  ) %>%
+    select(-B, -B.1),
+  separability(
+    filter(training_all, class == "water") %>% ungroup() %>% select(rcc),
+    filter(training_all, class == "other") %>% ungroup() %>% select(rcc)
+  ) %>%
+    select(-rcc, -rcc.1),
+  separability(
+    filter(training_all, class == "water") %>% ungroup() %>% select(gcc),
+    filter(training_all, class == "other") %>% ungroup() %>% select(gcc)
+  ) %>%
+    select(-gcc, -gcc.1),
+  separability(
+    filter(training_all, class == "water") %>% ungroup() %>% select(bcc),
+    filter(training_all, class == "other") %>% ungroup() %>% select(bcc)
+  ) %>%
+    select(-bcc, -bcc.1),
+  separability(
+    filter(training_all, class == "water") %>% ungroup() %>% select(rcc_sd_9),
+    filter(training_all, class == "other") %>% ungroup() %>% select(rcc_sd_9)
+  ) %>%
+    select(-rcc_sd_9, -rcc_sd_9.1),
+  separability(
+    filter(training_all, class == "water") %>% ungroup() %>% select(bcc_sd_9),
+    filter(training_all, class == "other") %>% ungroup() %>% select(bcc_sd_9)
+  ) %>%
+    select(-bcc_sd_9, -bcc_sd_9.1)
+)
 sep_stats$band <- row.names(sep_stats)
 
 # Look at group and variable relationships
@@ -334,20 +406,19 @@ map(unique(validation$site), acc_per_site) %>%
   write_csv("tables/rf_acc_per_site.csv")
 
 # Save the model
-save(rf_fit, file = "data/models/rf_2023-10-19.Rda")
+save(rf_fit, file = "data/models/rf_2023-10-20.Rda")
 
 # Load model if needed
-load("data/models/rf_oct2023.Rda")
+load("data/models/rf_2023-10-20.Rda")
 
 # Let's see how that looks like in space
 dir.create("data/drone_time_series/cbh_timeseries/preds/")
 dir.create("data/drone_time_series/tlb_timeseries/preds/")
 dir.create("data/drone_time_series/rdg_timeseries/preds/")
 
-preds_rasters <- lapply(c("cbh"), function(site_interest) {
-    site_raster_files <- list.files(paste0("data/drone_time_series/", site_interest, "_timeseries/norm"), full.names = TRUE)
-    pblapply(site_raster_files, function(rast_file) {
+pblapply(raster_files_all, function(rast_file) {
         year_interest <- gsub(".*/([a-z]{3}_[0-9]{4}.*)\\.tif", "\\1", rast_file)
+        site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", rast_file)
         cat("Running projections for", site_interest, "and", year_interest, ":\n")
         cat("Preparing data...\n")
         norm_raster <- rast(rast_file)
@@ -363,13 +434,13 @@ preds_rasters <- lapply(c("cbh"), function(site_interest) {
 
         # Load focal rasters
         focal_bcc <- rast(paste0("data/drone_time_series/", site_interest,
-                                 "_timeseries/focal_bcc_sd_3/", year_interest, 
-                                 "_bcc_sd_3.tif"))
-        names(focal_bcc) <- "bcc_sd_3"
+                                 "_timeseries/focal_bcc_sd_9/", year_interest, 
+                                 "_bcc_sd_9.tif"))
+        names(focal_bcc) <- "bcc_sd_9"
         focal_rcc <- rast(paste0("data/drone_time_series/", site_interest,
-                                 "_timeseries/focal_rcc_sd_3/", year_interest, 
-                                 "_rcc_sd_3.tif"))
-        names(focal_rcc) <- "rcc_sd_3"
+                                 "_timeseries/focal_rcc_sd_9/", year_interest, 
+                                 "_rcc_sd_9.tif"))
+        names(focal_rcc) <- "rcc_sd_9"
         
         # Collate predictors
         predictors <- c(norm_raster, rcc, gcc, bcc, focal_bcc, focal_rcc)
@@ -381,6 +452,5 @@ preds_rasters <- lapply(c("cbh"), function(site_interest) {
             overwrite = T
         )
         cat(year_interest, "done.\n")
-        return(preds)
-    }, cl = 9)
-}) 
+        return(NULL)
+    }, cl = 31)
