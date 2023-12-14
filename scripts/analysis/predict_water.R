@@ -17,7 +17,7 @@ library(pbapply)
 # Load training polys
 cbh_polys <- read_sf("data/training/cbh_training.gpkg") %>%
   mutate(., id = 1:nrow(.))
-cbh_polys[cbh_polys$year == "2019",]$year <- "2019_a" 
+#cbh_polys[cbh_polys$year == "2019",]$year <- "2019_a" 
 tlb_polys <- read_sf("data/training/tlb_training.gpkg") %>%
   mutate(., id = 1:nrow(.))
 rdg_polys <- read_sf("data/training/rdg_training.gpkg") %>%
@@ -127,7 +127,7 @@ training_all <- training_original %>%
   filter(site == "cbh") %>%
   group_by(year, site, class) %>%
   na.omit() %>%
-  sample_n(10000)
+  sample_n(5000)
 # Second tlb (5k per year and class)
 training_all <- training_original %>%
   filter(site == "tlb") %>%
@@ -144,7 +144,7 @@ training_all <- training_original %>%
   bind_rows(training_all)
 # Check final distribution of classes (expected: unbalanced due to rdg!)
 training_all %>% group_by(class) %>% tally()
-# Add water training from rdg
+# Add all water training data from rdg
 training_all <- training_original %>%
   filter(site == "rdg", class == "water") %>%
   group_by(year, site, class) %>%
@@ -406,10 +406,10 @@ map(unique(validation$site), acc_per_site) %>%
   write_csv("tables/rf_acc_per_site.csv")
 
 # Save the model
-save(rf_fit, file = "data/models/rf_2023-10-20.Rda")
+save(rf_fit, file = "data/models/rf_2023-12-14.Rda")
 
 # Load model if needed
-load("data/models/rf_2023-10-20.Rda")
+load("data/models/rf_2023-12-14.Rda")
 
 # Let's see how that looks like in space
 dir.create("data/drone_time_series/cbh_timeseries/preds/")
