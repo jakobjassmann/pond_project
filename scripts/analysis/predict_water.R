@@ -454,3 +454,30 @@ pblapply(raster_files_all, function(rast_file) {
         cat(year_interest, "done.\n")
         return(NULL)
     }, cl = 31)
+
+
+# Apply majority filter to reduce noise in predictions
+dir.create("data/drone_time_series/cbh_timeseries/preds_filtered/")
+dir.create("data/drone_time_series/tlb_timeseries/preds_filtered/")
+dir.create("data/drone_time_series/rdg_timeseries/preds_filtered/")
+preds_rasters <- c(
+  list.files("data/drone_time_series/cbh_timeseries/preds", full.names = T),
+  list.files("data/drone_time_series/tlb_timeseries/preds", full.names = T),
+  list.files("data/drone_time_series/rdg_timeseries/preds", full.names = T))
+pblapply(preds_rasters, function(pred_file){
+  year_interest <- gsub(".*/[a-z]{3}_[a-z]{3}_([0-9]{4}.*)_preds\\.tif", "\\1", pred_file)
+  site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", pred_file)
+  cat("Majority filter for predictions from:", site_interest, "and", year_interest, "\n")
+  pred_rast <- rast(pred_file)
+  pred_filterd <- focal(pred_rast, 
+                        w = 3, 
+                        fun = "modal",
+                        na.policy = "omit",
+                        na.remove = T)
+  cat("Writing raster...\n")
+  writeRaster(pred_filterd,
+              filename = paste0("data/drone_time_series/", site_interest, "_timeseries/preds_filtered/", site_interest, "_", year_interest, "_preds_filtered.tif"),
+              overwrite = T
+  )
+  return(NULL)
+}, cl = 31)
