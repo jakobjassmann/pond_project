@@ -349,6 +349,9 @@ plot_sep_band <- function(band = "R"){
 }
 c("R", "G", "B", "rcc", "gcc", "bcc", "rcc_sd_9", "bcc_sd_9") %>% map(plot_sep_band)
 
+# Save training data frame
+save(training_all, file = "data/training/training_all_df.Rda")
+
 # Split into training and validation
 training_all$id <- 1:nrow(training_all)
 training <- training_all %>%
@@ -406,10 +409,10 @@ map(unique(validation$site), acc_per_site) %>%
   write_csv("tables/rf_acc_per_site.csv")
 
 # Save the model
-save(rf_fit, file = "data/models/rf_2023-12-14.Rda")
+save(rf_fit, file = "data/models/rf_2024-01-24.Rda")
 
 # Load model if needed
-load("data/models/rf_2023-12-14.Rda")
+load("data/models/rf_2024-01-24.Rda")
 
 # Let's see how that looks like in space
 dir.create("data/drone_time_series/cbh_timeseries/preds/")
@@ -481,3 +484,72 @@ pblapply(preds_rasters, function(pred_file){
   )
   return(NULL)
 }, cl = 31)
+
+
+## Simple BCC thershold
+# Plot distribution of BCC
+ggplot(training) +
+  geom_histogram(aes(x= bcc)) +
+  theme_cowplot()
+
+# Generate vector of thersholds
+thershold_vals <- seq(0,1,0.01)
+levels(training_all$class) <- c("water", "other")
+
+# Generate predictions
+thershold_preds <- pblapply(thershold_vals, function(thershold_val) {
+  preds <- data.frame(
+    thershold_val = thershold_val,
+    class = case_when(
+      (training_all$bcc >= thershold_val) ~ "water",
+      (training_all$bcc < thershold_val) ~ "other"
+    ) %>% factor(levels = c("water", "other"))
+  )
+  cf_matrix <- confusionMatrix(preds$class, training_all$class)
+  data.frame(
+    thershold = thershold_val, 
+    acc = cf_matrix$overall["Accuracy"],
+    fpr = 1 - cf_matrix$byClass["Specificity"],
+    sens = cf_matrix$byClass["Sensitivity"],
+    spec = cf_matrix$byClass["Specificity"],
+    sens_spec = cf_matrix$byClass["Specificity"] + cf_matrix$byClass["Sensitivity"]
+  )
+}) %>% bind_rows()
+
+# Max sense spec
+best_thersh <- thershold_preds[thershold_preds$sens_spec == max(thershold_preds$sens_spec),]
+
+# Plot ROC curve
+ggplot(thershold_preds) +
+  geom_line(aes(x = fpr, y = sens)) +
+  annotate("point", x= best_thersh$fpr, best_thersh$sens, color = "red") +
+  theme_cowplot()
+
+# Generate projections based on threshold
+# Let's see how that looks like in space
+dir.create("data/drone_time_series/cbh_timeseries/preds_thresh/")
+dir.create("data/drone_time_series/tlb_timeseries/preds_thresh/")
+dir.create("data/drone_time_series/rdg_timeseries/preds_thresh/")
+
+pblapply(raster_files_all, function(rast_file) {
+        year_interest <- gsub(".*/([a-z]{3}_[0-9]{4}.*)\\.tif", "\\1", rast_file)
+        site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", rast_file)
+        cat("Running projections for", site_interest, "and", year_interest, ":\n")
+        cat("Preparing data...\n")
+        norm_raster <- rast(rast_file)
+        names(norm_raster) <- c("R", "G", "B", "alpha")
+
+        # Calculate and bcc
+        bcc <- norm_raster[["B"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
+        names(bcc) <- "bcc"
+
+        cat("Predicting values...\n")
+        preds <- bcc >= 0.40
+        cat("Writing raster...\n")
+        writeRaster(preds,
+            filename = paste0("data/drone_time_series/", site_interest, "_timeseries/preds_thresh/", site_interest, "_", year_interest, "_preds_thres.tif"),
+            overwrite = T
+        )
+        cat(year_interest, "done.\n")
+        return(NULL)
+    })
