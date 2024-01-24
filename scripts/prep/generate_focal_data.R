@@ -48,11 +48,11 @@ generate_focal <- function(rast_file, target_stat, window){
 }
 
 # Generate focal rasters sd with window sizes 3 and 9
-pblapply(c(cbh_norm),
-         target_stat = "sd",
-         window = 3,
-         FUN = generate_focal,
-         cl = 9)
+# pblapply(c(cbh_norm),
+#          target_stat = "sd",
+#          window = 3,
+#          FUN = generate_focal,
+#          cl = 9)
 pblapply(c(cbh_norm),
          target_stat = "sd",
          window = 9,
