@@ -15,13 +15,19 @@ library(parallel)
 library(pbapply)
 
 # Load training polys
-cbh_polys <- read_sf("data/training/cbh_training.gpkg") %>%
-  mutate(., id = 1:nrow(.))
+cbh_polys <- read_sf("data/training/cbh_training.gpkg") %>% 
+  mutate(geometry = geom) %>%
+  st_drop_geometry() %>% 
+  st_as_sf() %>%
+  mutate(., id = 1:nrow(.)) %>%
+  filter(!st_is_empty(geometry))
 #cbh_polys[cbh_polys$year == "2019",]$year <- "2019_a" 
 tlb_polys <- read_sf("data/training/tlb_training.gpkg") %>%
-  mutate(., id = 1:nrow(.))
+  mutate(., id = 1:nrow(.)) %>%
+  filter(!st_is_empty(geometry))
 rdg_polys <- read_sf("data/training/rdg_training.gpkg") %>%
-  mutate(., id = 1:nrow(.))
+  mutate(., id = 1:nrow(.)) %>%
+  filter(!st_is_empty(geometry))
 
 # Load list of raster files
 raster_files_cbh <- list.files("data/drone_time_series/cbh_timeseries/norm/",
@@ -33,26 +39,13 @@ raster_files_rdg <- list.files("data/drone_time_series/rdg_timeseries/norm/",
                            full.names = T) %>%
                            .[!(grepl("2016", .) | grepl("2019_b", .))]
 raster_files_focal <- c(
-  list.files("data/drone_time_series/cbh_timeseries/focal_bcc_sd_9",
-    full.names = T
-  ),
-  list.files("data/drone_time_series/cbh_timeseries/focal_rcc_sd_9",
-    full.names = T
-  ),
-    list.files("data/drone_time_series/tlb_timeseries/focal_bcc_sd_9",
-    full.names = T
-  ),
-  list.files("data/drone_time_series/tlb_timeseries/focal_rcc_sd_9",
-    full.names = T
-  ),
-    list.files("data/drone_time_series/rdg_timeseries/focal_bcc_sd_9",
-    full.names = T
-  ),
-  list.files("data/drone_time_series/rdg_timeseries/focal_rcc_sd_9",
-    full.names = T
-  )
+  list.files("data/drone_time_series/", pattern = "tif",
+    full.names = T, recursive = T) %>% .[grepl("focal_bcc",.)],
+  list.files("data/drone_time_series/", pattern = "tif",
+             full.names = T, recursive = T) %>% .[grepl("focal_rcc",.)]
 )
 
+# Combine norm rasters into a list
 raster_files_all <- c(
   raster_files_cbh,  raster_files_tlb, raster_files_rdg
 )
@@ -72,13 +65,25 @@ get_training_vals <- function(raster_file){
   site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", raster_file)
   
   # Load corresponding focal rasters
-  focal_raster_rcc <- raster_files_focal[grepl(site_interest, raster_files_focal)] %>%
+  focal_raster_rcc_sd <- raster_files_focal[grepl(site_interest, raster_files_focal)] %>%
     .[grepl(year_interest, .)] %>%
     .[grepl("rcc", .)] %>%
+    .[grepl("sd", .)] %>%
     rast()
-  focal_raster_bcc <- raster_files_focal[grepl(site_interest, raster_files_focal)] %>%
+  focal_raster_bcc_sd <- raster_files_focal[grepl(site_interest, raster_files_focal)] %>%
     .[grepl(year_interest, .)] %>%
     .[grepl("bcc", .)] %>%
+    .[grepl("sd", .)] %>%
+    rast()
+  focal_raster_rcc_mean <- raster_files_focal[grepl(site_interest, raster_files_focal)] %>%
+    .[grepl(year_interest, .)] %>%
+    .[grepl("rcc", .)] %>%
+    .[grepl("mean", .)] %>%
+    rast()
+  focal_raster_bcc_mean <- raster_files_focal[grepl(site_interest, raster_files_focal)] %>%
+    .[grepl(year_interest, .)] %>%
+    .[grepl("bcc", .)] %>%
+    .[grepl("mean", .)] %>%
     rast()
   
   # Subset polys for year
@@ -89,18 +94,24 @@ get_training_vals <- function(raster_file){
   
   # Extract training data
   training_vals_norm <- terra::extract(norm_raster, vect(polys))[, 1:4]
-  training_vals_focal_rcc <- terra::extract(focal_raster_rcc, vect(polys))[, 1:2]
-  training_vals_focal_bcc <- terra::extract(focal_raster_bcc, vect(polys))[, 1:2]
+  training_vals_focal_rcc_sd <- terra::extract(focal_raster_rcc_sd, vect(polys))[, 1:2]
+  training_vals_focal_bcc_sd <- terra::extract(focal_raster_bcc_sd, vect(polys))[, 1:2]
+  training_vals_focal_rcc_mean <- terra::extract(focal_raster_rcc_mean, vect(polys))[, 1:2]
+  training_vals_focal_bcc_mean <- terra::extract(focal_raster_bcc_mean, vect(polys))[, 1:2]
   
   # Adjust column names of data frame
   colnames(training_vals_norm) <- c("ID", "R", "G", "B")
-  colnames(training_vals_focal_rcc) <- c("ID", gsub(".*(rcc.*)\\.tif", "\\1", sources(focal_raster_rcc)))
-  colnames(training_vals_focal_bcc) <- c("ID", gsub(".*(bcc.*)\\.tif", "\\1", sources(focal_raster_bcc)))
-
+  colnames(training_vals_focal_rcc_sd) <- c("ID", gsub(".*(rcc.*)\\.tif", "\\1", sources(focal_raster_rcc_sd)))
+  colnames(training_vals_focal_bcc_sd) <- c("ID", gsub(".*(bcc.*)\\.tif", "\\1", sources(focal_raster_bcc_sd)))
+  colnames(training_vals_focal_rcc_mean) <- c("ID", gsub(".*(rcc.*)\\.tif", "\\1", sources(focal_raster_rcc_mean)))
+  colnames(training_vals_focal_bcc_mean) <- c("ID", gsub(".*(bcc.*)\\.tif", "\\1", sources(focal_raster_bcc_mean)))
+  
   # bind training values
   training_vals_all <- cbind(training_vals_norm, 
-  select(training_vals_focal_rcc, -ID),
-  select(training_vals_focal_bcc, -ID))
+  select(training_vals_focal_rcc_sd, -ID),
+  select(training_vals_focal_bcc_sd, -ID),
+  select(training_vals_focal_rcc_mean, -ID),
+  select(training_vals_focal_bcc_mean, -ID))
   # Combine training data with metadata (incl. class info) of the polys
   final_training <- polys %>%
     st_drop_geometry() %>%
@@ -361,7 +372,7 @@ validation <- filter(training_all, !(id %in% training$id))
 
 
 # Train random forest model
-rf_fit <- randomForest(class ~ rcc + bcc + R + rcc_sd_9 + bcc_sd_9,
+rf_fit <- randomForest(class ~ rcc + bcc + R + rcc_mean_3 + bcc_mean_3 + rcc_sd_3 + bcc_sd_3,
              data = select(training, -id))
 
 # Validate on test set
@@ -409,10 +420,10 @@ map(unique(validation$site), acc_per_site) %>%
   write_csv("tables/rf_acc_per_site.csv")
 
 # Save the model
-save(rf_fit, file = "data/models/rf_2024-01-24.Rda")
+save(rf_fit, file = "data/models/rf_2024-01-31.Rda")
 
 # Load model if needed
-load("data/models/rf_2024-01-24.Rda")
+load("data/models/rf_2024-01-31.Rda")
 
 # Let's see how that looks like in space
 dir.create("data/drone_time_series/cbh_timeseries/preds/")
@@ -428,25 +439,32 @@ pblapply(raster_files_all, function(rast_file) {
         names(norm_raster) <- c("R", "G", "B", "alpha")
 
         # Calculate rcc, gcc and bcc
-        rcc <- norm_raster[["R"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
+        rcc <- rast(gsub("norm", "rcc", rast_file))
         names(rcc) <- "rcc"
-        gcc <- norm_raster[["G"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
-        names(gcc) <- "gcc"
-        bcc <- norm_raster[["B"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
+        bcc <- rast(gsub("norm", "bcc", rast_file))
         names(bcc) <- "bcc"
-
+        
         # Load focal rasters
-        focal_bcc <- rast(paste0("data/drone_time_series/", site_interest,
-                                 "_timeseries/focal_bcc_sd_9/", year_interest, 
-                                 "_bcc_sd_9.tif"))
-        names(focal_bcc) <- "bcc_sd_9"
-        focal_rcc <- rast(paste0("data/drone_time_series/", site_interest,
-                                 "_timeseries/focal_rcc_sd_9/", year_interest, 
-                                 "_rcc_sd_9.tif"))
-        names(focal_rcc) <- "rcc_sd_9"
+        focal_bcc_sd <- rast(paste0("data/drone_time_series/", site_interest,
+                                 "_timeseries/focal_bcc_sd_3/", year_interest, 
+                                 "_bcc_sd_3.tif"))
+        names(focal_bcc_sd) <- "bcc_sd_3"
+        focal_rcc_sd <- rast(paste0("data/drone_time_series/", site_interest,
+                                    "_timeseries/focal_rcc_sd_3/", year_interest, 
+                                    "_rcc_sd_3.tif"))
+        names(focal_rcc_sd) <- "rcc_sd_3"
+        focal_bcc_mean <- rast(paste0("data/drone_time_series/", site_interest,
+                                      "_timeseries/focal_bcc_mean_3/", year_interest, 
+                                      "_bcc_mean_3.tif"))
+        names(focal_bcc_mean) <- "bcc_mean_3"
+        focal_rcc_mean <- rast(paste0("data/drone_time_series/", site_interest,
+                                 "_timeseries/focal_rcc_mean_3/", year_interest, 
+                                 "_rcc_mean_3.tif"))
+        names(focal_rcc_mean) <- "rcc_mean_3"
+        
         
         # Collate predictors
-        predictors <- c(norm_raster, rcc, gcc, bcc, focal_bcc, focal_rcc)
+        predictors <- c(norm_raster, rcc, bcc, focal_bcc_mean, focal_rcc_mean, focal_bcc_sd, focal_rcc_sd)
         cat("Predicting values...\n")
         preds <- terra::predict(predictors, rf_fit)
         cat("Writing raster...\n")
@@ -459,53 +477,35 @@ pblapply(raster_files_all, function(rast_file) {
     }, cl = 31)
 
 
-# Apply majority filter to reduce noise in predictions
-dir.create("data/drone_time_series/cbh_timeseries/preds_filtered/")
-dir.create("data/drone_time_series/tlb_timeseries/preds_filtered/")
-dir.create("data/drone_time_series/rdg_timeseries/preds_filtered/")
-preds_rasters <- c(
-  list.files("data/drone_time_series/cbh_timeseries/preds", full.names = T),
-  list.files("data/drone_time_series/tlb_timeseries/preds", full.names = T),
-  list.files("data/drone_time_series/rdg_timeseries/preds", full.names = T))
-pblapply(preds_rasters, function(pred_file){
-  year_interest <- gsub(".*/[a-z]{3}_[a-z]{3}_([0-9]{4}.*)_preds\\.tif", "\\1", pred_file)
-  site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", pred_file)
-  cat("Majority filter for predictions from:", site_interest, "and", year_interest, "\n")
-  pred_rast <- rast(pred_file)
-  pred_filterd <- focal(pred_rast, 
-                        w = 3, 
-                        fun = "modal",
-                        na.policy = "omit",
-                        na.remove = T)
-  cat("Writing raster...\n")
-  writeRaster(pred_filterd,
-              filename = paste0("data/drone_time_series/", site_interest, "_timeseries/preds_filtered/", site_interest, "_", year_interest, "_preds_filtered.tif"),
-              overwrite = T
-  )
-  return(NULL)
-}, cl = 31)
-
-
 ## Simple BCC thershold
 # Plot distribution of BCC
 ggplot(training) +
   geom_histogram(aes(x= bcc)) +
   theme_cowplot()
+ggplot(training) +
+  geom_density(aes(x= bcc, colour = class)) +
+  geom_vline(xintercept = 0.359) +
+  theme_cowplot()
 
 # Generate vector of thersholds
 thershold_vals <- seq(0,1,0.01)
-levels(training_all$class) <- c("water", "other")
+levels(training_all$class)
 
-# Generate predictions
-thershold_preds <- pblapply(thershold_vals, function(thershold_val) {
+training_cbh <- filter(training_all, site == "cbh")
+training_tlb <- filter(training_all, site == "tlb")
+training_rdg <- filter(training_all, site == "rdg")
+
+# Helper function to generate predictions for a set of thresholds
+gen_preds_thres <- function(thershold_val, training_data = training_all) {
   preds <- data.frame(
     thershold_val = thershold_val,
-    class = case_when(
-      (training_all$bcc >= thershold_val) ~ "water",
-      (training_all$bcc < thershold_val) ~ "other"
-    ) %>% factor(levels = c("water", "other"))
-  )
-  cf_matrix <- confusionMatrix(preds$class, training_all$class)
+    class = training_data$bcc >= thershold_val
+  ) %>%
+    mutate(class = factor(case_when(class == 1 ~ "water",
+                                    class == 0 ~ "other"), 
+                          levels = c("other", "water")))
+  
+  cf_matrix <- confusionMatrix(preds$class, training_data$class, positive = "water")
   data.frame(
     thershold = thershold_val, 
     acc = cf_matrix$overall["Accuracy"],
@@ -514,15 +514,36 @@ thershold_preds <- pblapply(thershold_vals, function(thershold_val) {
     spec = cf_matrix$byClass["Specificity"],
     sens_spec = cf_matrix$byClass["Specificity"] + cf_matrix$byClass["Sensitivity"]
   )
-}) %>% bind_rows()
+}
+
+# Generate predictions
+thershold_preds_all <- pblapply(thershold_vals, gen_preds_thres, cl = 12) %>% bind_rows()
+thershold_preds_cbh <- pblapply(thershold_vals, gen_preds_thres, training_data = training_cbh, cl = 12) %>% bind_rows()
+thershold_preds_tlb <- pblapply(thershold_vals, gen_preds_thres, training_data = training_tlb, cl = 12) %>% bind_rows()
+thershold_preds_rdg <- pblapply(thershold_vals, gen_preds_thres, training_data = training_rdg, cl = 12) %>% bind_rows()
 
 # Max sense spec
-best_thersh <- thershold_preds[thershold_preds$sens_spec == max(thershold_preds$sens_spec),]
+best_thersh_all <- thershold_preds_all[thershold_preds_all$sens_spec == max(thershold_preds_all$sens_spec),]
+best_thersh_cbh <- thershold_preds_cbh[thershold_preds_cbh$sens_spec == max(thershold_preds_cbh$sens_spec),]
+best_thersh_tlb <- thershold_preds_tlb[thershold_preds_tlb$sens_spec == max(thershold_preds_tlb$sens_spec),]
+best_thersh_rdg <- thershold_preds_rdg[thershold_preds_rdg$sens_spec == max(thershold_preds_rdg$sens_spec),]
 
 # Plot ROC curve
-ggplot(thershold_preds) +
+ggplot(thershold_preds_all) +
   geom_line(aes(x = fpr, y = sens)) +
-  annotate("point", x= best_thersh$fpr, best_thersh$sens, color = "red") +
+  annotate("point", x= best_thersh_all$fpr, best_thersh_all$sens, color = "red") +
+  theme_cowplot()
+ggplot(thershold_preds_cbh) +
+  geom_line(aes(x = fpr, y = sens)) +
+  annotate("point", x= best_thersh_cbh$fpr, best_thersh_cbh$sens, color = "red") +
+  theme_cowplot()
+ggplot(thershold_preds_tlb) +
+  geom_line(aes(x = fpr, y = sens)) +
+  annotate("point", x= best_thersh_tlb$fpr, best_thersh_tlb$sens, color = "red") +
+  theme_cowplot()
+ggplot(thershold_preds_rdg) +
+  geom_line(aes(x = fpr, y = sens)) +
+  annotate("point", x= best_thersh_rdg$fpr, best_thersh_rdg$sens, color = "red") +
   theme_cowplot()
 
 # Generate projections based on threshold
@@ -544,7 +565,10 @@ pblapply(raster_files_all, function(rast_file) {
         names(bcc) <- "bcc"
 
         cat("Predicting values...\n")
-        preds <- bcc >= 0.40
+        if(site_interest == "cbh") thershold <- 0.39
+        if(site_interest == "rdg") thershold <- 0.33
+        if(site_interest == "tlb") thershold <- best_thersh_tlb$thershold
+        preds <- bcc >= thershold
         cat("Writing raster...\n")
         writeRaster(preds,
             filename = paste0("data/drone_time_series/", site_interest, "_timeseries/preds_thresh/", site_interest, "_", year_interest, "_preds_thres.tif"),
@@ -552,4 +576,4 @@ pblapply(raster_files_all, function(rast_file) {
         )
         cat(year_interest, "done.\n")
         return(NULL)
-    })
+    }, cl = 12)
