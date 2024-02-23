@@ -53,20 +53,37 @@ generate_focal <- function(rast_file, target_stat, window){
 #          window = 3,
 #          FUN = generate_focal,
 #          cl = 9)
+
+# SD
 pblapply(c(cbh_norm),
          target_stat = "sd",
-         window = 9,
+         window = 3,
          FUN = generate_focal,
          cl = 9)
-
 pblapply(c(tlb_norm),
          target_stat = "sd",
-         window = 9,
+         window = 3,
+         FUN = generate_focal,
+         cl = 9)
+pblapply(c(rdg_norm),
+         target_stat = "sd",
+         window = 3,
          FUN = generate_focal,
          cl = 9)
 
+# Mean
+pblapply(c(cbh_norm),
+         target_stat = "mean",
+         window = 3,
+         FUN = generate_focal,
+         cl = 9)
+pblapply(c(tlb_norm),
+         target_stat = "mean",
+         window = 3,
+         FUN = generate_focal,
+         cl = 9)
 pblapply(c(rdg_norm),
-         target_stat = "sd",
-         window = 9,
+         target_stat = "mean",
+         window = 3,
          FUN = generate_focal,
          cl = 9)

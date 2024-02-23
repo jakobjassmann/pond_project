@@ -96,12 +96,19 @@ extract_bcc_vals <- function(rast_file){
 }
 
 # Extract bcc for all files
-bcc_raw_vals <- pblapply(bcc_raw_files, extract_bcc_vals) %>% bind_rows()
+bcc_raw_vals <- pblapply(bcc_raw_files, extract_bcc_vals, cl = 12) %>% bind_rows()
 
 # Plot bcc values by year
 ggplot(bcc_raw_vals) +
   geom_density(aes(x = bcc, colour = class)) +
   facet_wrap(~paste0(site, "_", year), scales = "free") +
+  scale_x_continuous(limits = c(0,1)) +
+  theme_classic()
+
+ggplot(bcc_raw_vals %>% filter(site == "cbh", year == "2017")) +
+  geom_density(aes(x = bcc, colour = class)) +
+  facet_wrap(~paste0(site, "_", year), scales = "free") +
+  geom_vline(xintercept = 0.38) +
   scale_x_continuous(limits = c(0,1)) +
   theme_classic()
 
@@ -144,7 +151,7 @@ pblapply(nrom_files, suffix = "", calc_bcc, cl = 31)
 bcc_files <- list.files("data/drone_time_series/", pattern = ".tif$", recursive = T, full.names = T) %>%
   .[grepl("bcc/",.)]
 # Extract bcc for all files
-bcc_norm_vals <- pblapply(bcc_files, extract_bcc_vals) %>% bind_rows()
+bcc_norm_vals <- pblapply(bcc_files, extract_bcc_vals, cl = 12) %>% bind_rows()
 # Check plot
 bcc_norm_vals %>% filter(site == "cbh", year == "2017") %>%
   summarise(bbc_low05 = quantile(bcc, 0.5))
