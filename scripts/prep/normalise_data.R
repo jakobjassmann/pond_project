@@ -27,7 +27,7 @@ correct_image <- function(source_image, target_image){
     # adapt color channels of image
     imgCorrected=colorCorrection(imgToConvert,mst)
     # plot the result
-    print(plot(imgCorrected))
+    #print(plot(imgCorrected))
     # write out
     writeImage(imgCorrected, 
                gsub("(.*)rgb(.*)", "\\1norm\\2", source_image))
@@ -181,8 +181,10 @@ cbh_q95 %>%
     arrange(sum)
 # Seems that tlb_2019_a is the overall brightest one statistically speaking, also in the blue band
 
-# Set target image
-target_image <- "data/drone_time_series/tlb_timeseries/rgb/tlb_2019_a.tif"
+# Set target image for each time_series
+target_image <- "data/drone_time_series/cbh_timeseries/rgb/cbh_2017.tif"
+# cbh2017 Chosen on best seperation of water vs. no water in raw bcc
+
 
 # Read in image file names
 image_list <- data.frame(
@@ -206,16 +208,20 @@ dir.create("data/drone_time_series/tlb_timeseries/norm")
 dir.create("data/drone_time_series/rdg_timeseries/norm")
 
 # prep cluster
-cl <- makeCluster(4)
-clusterEvalQ(cl, library(CRImage))
+#cl <- makeCluster(1)
+#clusterEvalQ(cl, library(CRImage))
 # Correct images
 pblapply(
     image_list$file,
-    target_image = target_image,
-    FUN = correct_image,
-    cl = cl)
+    function(rast_file){
+        correct_image(rast_file, target_image)
+    }
+    
+     #,
+    #cl = cl
+    )
 # Stop cluster
-stopCluster(cl)
+#stopCluster(cl)
 
 # Now -> verify using file browser that converstion was satisfactory.
 
