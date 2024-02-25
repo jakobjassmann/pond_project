@@ -4,6 +4,7 @@ library(terra)
 library(ggplot2)
 library(tidyterra)
 library(cowplot)
+library(pbapply)
 
 # get rasters
 norm_files <- list.files("data/drone_time_series/", pattern = ".tif$", recursive = T, full.names = T) %>%
@@ -35,10 +36,10 @@ plot_preds <- function(preds_file){
       geom_spatraster(data = cat_rast(preds_file)) +
       scale_fill_manual(values = c("NA", "magenta"), na.value = "transparent") +
       theme_nothing(),
-    ggplot() +
-      geom_spatraster(data = cat_rast(preds_file)) +
-      scale_fill_manual(values = c(NA, "magenta"), na.value = "transparent") +
-      theme_nothing(),
+    # ggplot() +
+    #   geom_spatraster(data = cat_rast(preds_file)) +
+    #   scale_fill_manual(values = c(NA, "magenta"), na.value = "transparent") +
+    #   theme_nothing(),
     labels = c(paste0(site_interest, "_", year_interest), "")) %>%
     return()
 }
