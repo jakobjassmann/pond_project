@@ -7,6 +7,7 @@ library(sf)
 library(pbapply)
 library(terra)
 library(ggplot2)
+library(cowplot)
 
 # Load training polygons
 training_polys <- bind_rows(read_sf("data/training/cbh_training.gpkg") %>% mutate(geometry = geom) %>% st_drop_geometry() %>% st_as_sf(),
@@ -99,11 +100,15 @@ extract_bcc_vals <- function(rast_file){
 bcc_raw_vals <- pblapply(bcc_raw_files, extract_bcc_vals, cl = 12) %>% bind_rows()
 
 # Plot bcc values by year
-ggplot(bcc_raw_vals) +
+(bbc_raw_plot <- ggplot(bcc_raw_vals) +
   geom_density(aes(x = bcc, colour = class)) +
   facet_wrap(~paste0(site, "_", year), scales = "free") +
+  scale_colour_manual(values = c("#C00000", "#00B0F0")) +
   scale_x_continuous(limits = c(0,1)) +
-  theme_classic()
+  scale_y_continuous(expand = c(0.2,0.2)) +
+  theme_cowplot())
+save_plot("figures/training_all_raw_sep.png", bbc_raw_plot,
+          base_height = 12, base_asp = 16/9, bg = "white")
 
 ggplot(bcc_raw_vals %>% filter(site == "cbh", year == "2017")) +
   geom_density(aes(x = bcc, colour = class)) +

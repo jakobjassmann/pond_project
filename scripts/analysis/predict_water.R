@@ -547,7 +547,7 @@ thresholds_site <- training_all %>%
   bind_rows() %>%
   na.omit()
 
-# Get sens_spec max thresholds           
+# Get max accuracy thresholds           
 best_thersh_site_year <- thresholds_site %>%
   split(., .$site_year) %>%
   lapply(., function(x){ 
@@ -573,14 +573,19 @@ ggplot(training_all) +
   facet_wrap(vars(site)) +
   theme_cowplot()
 
-ggplot(training_all %>% mutate(site_year = paste0(site,"_", year))) +
+(bcc_norm_with_thresh_plot <- ggplot(training_all %>% mutate(site_year = paste0(site,"_", year))) +
   geom_density(aes(x= bcc, colour = class)) +
   geom_vline(aes(xintercept = thershold), data = best_thersh_site_year) +
-  geom_text(aes(x = thershold + 0.1, y = -0.5, label = thershold), 
-            data = best_thersh_site_year) +
-  facet_wrap(vars(site_year)) +
-  theme_cowplot()
-
+  geom_text(aes(x = thershold - 0.07, y = -Inf, label = round(thershold,2)), 
+            data = best_thersh_site_year, vjust = -0.5) +
+  facet_wrap(vars(site_year), scales = "free") +
+  scale_colour_manual(values = c("#C00000", "#00B0F0")) +
+  scale_x_continuous(limits = c(0,1)) +
+  scale_y_continuous(expand = c(0.2,0.2)) +
+  labs(x = "bcc", y = "density") +
+  theme_cowplot())
+save_plot("figures/bcc_all_norm_sep_with_thresh.png", bcc_norm_with_thresh_plot,
+          base_height = 12, base_asp = 16/9, bg = "white")
 # Plot ROC curve
 ggplot(thershold_preds_all) +
   geom_line(aes(x = fpr, y = sens)) +
