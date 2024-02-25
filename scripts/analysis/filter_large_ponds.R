@@ -11,19 +11,20 @@ library(tidyterra)
 library(ggplot2)
 library(cowplot)
 
+## Identify minimum pond area in training dataset
 # Load training data
 cbh_polys <- read_sf("data/training/cbh_training.gpkg") %>%
-  mutate(., id = 1:nrow(.)) 
+  mutate(., id = 1:nrow(.))
 tlb_polys <- read_sf("data/training/tlb_training.gpkg") %>%
-  mutate(., id = 1:nrow(.)) 
+  mutate(., id = 1:nrow(.))
 rdg_polys <- read_sf("data/training/rdg_training.gpkg") %>%
   mutate(., id = 1:nrow(.))
 # Get area of smallest pond in training
-cbh_polys$area <- cbh_polys %>% 
+cbh_polys$area <- cbh_polys %>%
   split(., 1:nrow(.)) %>% map(st_area) %>% unlist()
-tlb_polys$area <- tlb_polys %>% 
+tlb_polys$area <- tlb_polys %>%
   split(., 1:nrow(.)) %>% map(st_area) %>% unlist()
-rdg_polys$area <- rdg_polys %>% 
+rdg_polys$area <- rdg_polys %>%
   split(., 1:nrow(.)) %>% map(st_area) %>% unlist()
 min(cbh_polys$area)
 min(tlb_polys$area[tlb_polys$area!=0])
@@ -36,41 +37,41 @@ preds_rasters <- c(
   list.files("data/drone_time_series/tlb_timeseries/preds_thresh/", full.names = T),
   list.files("data/drone_time_series/rdg_timeseries/preds_thresh/", full.names = T))
 
-# Apply majority filter to reduce noise in predictions
-dir.create("data/drone_time_series/cbh_timeseries/preds_filtered/")
-dir.create("data/drone_time_series/tlb_timeseries/preds_filtered/")
-dir.create("data/drone_time_series/rdg_timeseries/preds_filtered/")
-
-pblapply(preds_rasters, function(pred_file){
-  year_interest <- gsub(".*/[a-z]{3}_[a-z]{3}_([0-9]{4}.*)_preds\\.tif", "\\1", pred_file)
-  site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", pred_file)
-  cat("Majority filter for predictions from:", site_interest, "and", year_interest, "\n")
-  pred_rast <- rast(pred_file)
-  pred_filterd <- focal(pred_rast, 
-                        w = 3, 
-                        fun = "modal",
-                        na.policy = "omit",
-                        na.remove = T)
-  cat("Writing raster...\n")
-  writeRaster(pred_filterd,
-              filename = paste0("data/drone_time_series/", site_interest, "_timeseries/preds_filtered/", site_interest, "_", year_interest, "_preds_filtered.tif"),
-              overwrite = T
-  )
-  return(NULL)
-}, cl = 31)
-
-
-# Get file names for filtered rasters
-preds_rasters_filtered <- c(
-  list.files("data/drone_time_series/cbh_timeseries/preds_filtered", full.names = T),
-  list.files("data/drone_time_series/tlb_timeseries/preds_filtered", full.names = T),
-  list.files("data/drone_time_series/rdg_timeseries/preds_filtered", full.names = T))
-
-# Plot rasters for comparison
-plot(rast(preds_rasters[2]))
-plot(rast(preds_rasters_filtered[2]))
-plot(crop(rast(preds_rasters[2]), ext(517519,517558,7858823,7858859))) 
-plot(crop(rast(preds_rasters_filtered[2]), ext(517519,517558,7858823,7858859)))
+# # Apply majority filter to reduce noise in predictions
+# dir.create("data/drone_time_series/cbh_timeseries/preds_filtered/")
+# dir.create("data/drone_time_series/tlb_timeseries/preds_filtered/")
+# dir.create("data/drone_time_series/rdg_timeseries/preds_filtered/")
+# 
+# pblapply(preds_rasters, function(pred_file){
+#   year_interest <- gsub(".*/[a-z]{3}_[a-z]{3}_([0-9]{4}.*)_preds\\.tif", "\\1", pred_file)
+#   site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", pred_file)
+#   cat("Majority filter for predictions from:", site_interest, "and", year_interest, "\n")
+#   pred_rast <- rast(pred_file)
+#   pred_filterd <- focal(pred_rast, 
+#                         w = 3, 
+#                         fun = "modal",
+#                         na.policy = "omit",
+#                         na.remove = T)
+#   cat("Writing raster...\n")
+#   writeRaster(pred_filterd,
+#               filename = paste0("data/drone_time_series/", site_interest, "_timeseries/preds_filtered/", site_interest, "_", year_interest, "_preds_filtered.tif"),
+#               overwrite = T
+#   )
+#   return(NULL)
+# }, cl = 31)
+# 
+# 
+# # Get file names for filtered rasters
+# preds_rasters_filtered <- c(
+#   list.files("data/drone_time_series/cbh_timeseries/preds_filtered", full.names = T),
+#   list.files("data/drone_time_series/tlb_timeseries/preds_filtered", full.names = T),
+#   list.files("data/drone_time_series/rdg_timeseries/preds_filtered", full.names = T))
+# 
+# # Plot rasters for comparison
+# plot(rast(preds_rasters[2]))
+# plot(rast(preds_rasters_filtered[2]))
+# plot(crop(rast(preds_rasters[2]), ext(517519,517558,7858823,7858859))) 
+# plot(crop(rast(preds_rasters_filtered[2]), ext(517519,517558,7858823,7858859)))
 
 
 # Helper funciton to get pond polygons
@@ -109,7 +110,7 @@ get_pond_polys <- function(pred_file){
 # Get polygons for all sites
 pond_polys <- pblapply(preds_rasters, get_pond_polys, cl = 31) %>% bind_rows()
 
-# Number of pond polys above a thershold
+# Number of pond polys above a threshold
 pond_polys %>% 
   group_by(site, year) %>% 
   st_drop_geometry() %>% 
@@ -120,9 +121,17 @@ pond_polys %>%
             more_than_5m2 = sum(area >= set_units(5, "m^2")),
             more_than_6m2 = sum(area >= set_units(6, "m^2"))) %>% print(n= 100)
 
-# Filter out all ponds smaller than 6 m2 (approx 500 pixels)
+# Filter out all ponds smaller than 1 m2 (approx 500 pixels)
 pond_polys_filtered_size <- pond_polys %>% filter(area >= set_units(1, "m^2"))
 
+# Remove erroneous rdg data outside the area of interest
+rdg_aoi <- read_sf("data/drone_time_series/rdg_timeseries/rdg_study_aoi.shp")
+pond_polys_filtered_size <- bind_rows(
+  pond_polys_filtered_size %>% filter(site != "rdg"),
+  pond_polys_filtered_size %>% filter(site == "rdg") %>%
+    st_contains(rdg_aoi,.) %>% unlist() %>%
+    slice(pond_polys_filtered_size %>% filter(site == "rdg"), .)
+)
 # Helper function to plot polygons that were filtered
 pond_polys_filtered_size %>%
   mutate(site_year = paste0(site, "_", year)) %>%
@@ -173,13 +182,16 @@ pond_polys_filtered_size %>%
     return(NULL)
   }, 
   cl = 31)
+
 # Write function to filter polygons within time-series
 filter_polys_overlap <- function(site_year_df){
   # dummy site and year
-  # year_interest <- "2016"
-  # site_interest <- "cbh"
+  # year_interest <- "2019_a"
+  # site_interest <- "tlb"
   year_interest <- site_year_df %>% pull(year)
+  calendar_year <- gsub(".*([0-9]{4}).*", "\\1", year_interest)
   site_interest <- site_year_df %>% pull(site)
+  cat("\n", site_interest, year_interest, "\n")
   
   # Filter size-filtered pond polygons for site
   pond_polys_site <- pond_polys_filtered_size %>% 
@@ -187,8 +199,9 @@ filter_polys_overlap <- function(site_year_df){
     ungroup() # remove any previous groupings, just in case
   
   # Get years in time-series and remove years different to the year of interest
+  # and others in the same calendar year
   years <- unique(pond_polys_site$year)
-  other_years <- years[!grepl(year_interest, years)] 
+  other_years <- years[!grepl(calendar_year, years)] 
     #%>% .[!grepl("2017",.)] # remove 2017
   
   # Pull out polygons for year of interest
@@ -197,10 +210,10 @@ filter_polys_overlap <- function(site_year_df){
     mutate(id = 1:nrow(.)) # add id
   
   # Visual check
-  ggplot(polys_year_interest) + 
-    geom_sf(aes(fill = as.character(id)), colour = NA) + 
-    theme_minimal() +
-    theme(legend.position = "none")
+  # ggplot(polys_year_interest) + 
+  #   geom_sf(aes(fill = as.character(id)), colour = NA) + 
+  #   theme_minimal() +
+  #   theme(legend.position = "none")
   
   # Determine overlap of pond polygons for year of interest with other years
   polys_year_filtered <- pond_polys_site %>% # Filter out polygons for year of interest
@@ -235,7 +248,7 @@ filter_polys_overlap <- function(site_year_df){
    
   # Clean up metadata and return filtered ponds
   polys_year_filtered %>%
-    select(-lyr1) %>%
+    select(-bcc) %>%
     mutate(id = 1:nrow(.)) %>%
     return()
 }
@@ -245,9 +258,11 @@ pond_polys_filtered_overlap <- pond_polys_filtered_size %>%
   st_drop_geometry() %>%
   distinct(site, year) %>%
   remove_rownames() %>%
+  filter(site != "rdg") %>%
   split(., 1:nrow(.)) %>%
-  pblapply(filter_polys_overlap, cl = 31) %>%
-  bind_rows()
+  pblapply(filter_polys_overlap) %>%
+  bind_rows() %>%
+  bind_rows(filter(pond_polys_filtered_size, site == "rdg"))
   
 # Generate figures to document filtering
 pond_polys_filtered_overlap %>%
@@ -264,16 +279,21 @@ pond_polys_filtered_overlap %>%
     # Load raster
     pred_rast <- rast(pred_file)
         # Set non-water values to NA
-    pred_rast <- classify(pred_rast, matrix(c(1,NA,
-                                              2,1,
-                                              NaN, NA), nrow = 3, byrow = T))
+    pred_rast <- classify(pred_rast,  matrix(c(0,NA,
+                                               1,1,
+                                               NaN, NA), nrow = 3, byrow = T))
     # Convert to categorical
     levels(pred_rast) <- data.frame(1, "water")
     
+    # Find matching ponds filtered by size only
+    ponds_polys_size_only <- pond_polys_filtered_size %>%
+      filter(site == site_interest, year == year_interest)
+      
     # Generate plot
     filter_plot <- ggplot() +
         geom_spatraster(data = pred_rast) +
-        geom_sf(data = pond_polys, colour ="NA", fill = "blue") +
+        geom_sf(data = ponds_polys_size_only, colour ="NA", fill = "blue") +
+        geom_sf(data = pond_polys, colour ="NA", fill = "darkblue") +
         scale_fill_manual(values = c("red"), na.value = NA) +
       labs(title = paste(site_interest, year_interest)) +
         theme_map() +
@@ -302,12 +322,16 @@ pond_polys_filtered_overlap %>%
     # Generate raster
     site_rast <- pond_polys_to_raster(polys_site, preds_rasters)
     # Generate dir
-    dir.create(paste0("data/drone_time_series/", site_interest, "_timeseries/preds_filtered"), showWarnings = F)
+    dir.create(paste0("data/drone_time_series/", site_interest, "_timeseries/preds_filtered_overlap"), showWarnings = F)
     writeRaster(site_rast, 
-                paste0("data/drone_time_series/", site_interest, "_timeseries/preds_filtered/", 
+                paste0("data/drone_time_series/", site_interest, "_timeseries/preds_filtered_overlap/", 
                        site_interest, "_", year_interest, ".tif"), 
                 overwrite = T)
     return(NULL)
   }, 
   cl = 31)
 
+# Save polygons
+dir.create("data/pond_polys")
+write_sf(pond_polys_filtered_size, "data/pond_polys/pond_polys_filtered_size.gpkg")
+write_sf(pond_polys_filtered_overlap, "data/pond_polys/pond_polys_filtered_size_overlap.gpkg")
