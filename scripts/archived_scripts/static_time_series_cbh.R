@@ -30,7 +30,8 @@ tlb_preds <- list.files("data/drone_time_series/tlb_timeseries/preds/",
   full.names = T)
 rdg_preds <- list.files("data/drone_time_series/rdg_timeseries/preds/",
   pattern = "tif",
-  full.names = T)
+  full.names = T) %>%
+  .[!(grepl("2016", .) | grepl("2019_b", .))]
 
 
 # Load and prep training data
@@ -160,7 +161,7 @@ plot_predictions_site <- function(site_name){
   pred_raster_files <- list.files(paste0("data/drone_time_series/", site_name, "_timeseries/preds/"),
   pattern = "tif",
   full.names = T)
-preds_plots <- map(1:length(rgb_raster_files),
+  preds_plots <- map(1:length(rgb_raster_files),
                  function(index){
                   year <- gsub(".*([0-9]{4}_?[a-c]?).*", "\\1", rgb_raster_files[index])
                    # Status
