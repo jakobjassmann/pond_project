@@ -14,6 +14,7 @@ library(pbapply)
 library(exifr)
 library(terra)
 
+# Helper function for correcting an image using the CRImage workflow
 correct_image <- function(source_image, target_image){
     cat(source_image, "\n")
     # read in the target image
@@ -35,9 +36,11 @@ correct_image <- function(source_image, target_image){
     return(NULL)
 }
 
+## Data preparation and screening
+
 # Confirm datatypes of all rasters
 data.frame(
-    file = list.files("data/drone_time_series",
+    file = list.files("data/drone_data",
         pattern = "\\.tif$",
         recursive = T,
         full.names = T
@@ -45,48 +48,45 @@ data.frame(
 ) %>%
     filter(grepl(".*/rgb/.*", file)) %>%
     filter(!grepl("native", file)) %>%
-    filter(grepl("timeseries/", file)) %>%
-        pull(file) %>%
-        lapply(function(x){
-            rast_x <- rast(x)
-            data.frame(
-                rast_name = gsub(".*/(.*)", "\\1", x),
-                R = datatype(rast_x)[1],
-                G = datatype(rast_x)[2],
-                B = datatype(rast_x)[3],
-                alpha = datatype(rast_x)[4]
-            )
-        }) %>% 
-        bind_rows()
+    pull(file) %>%
+    lapply(function(x) {
+        rast_x <- rast(x)
+        data.frame(
+            rast_name = gsub(".*/(.*)", "\\1", x),
+            R = datatype(rast_x)[1],
+            G = datatype(rast_x)[2],
+            B = datatype(rast_x)[3],
+            alpha = datatype(rast_x)[4]
+        )
+    }) %>%
+    bind_rows()
 
-# Prepare cbh2014 raster which is INT16, convert to byte
-cbh_2014 <- rast("data/drone_time_series/cbh_timeseries/rgb/cbh_2014.tif")
+# Prepare cbh2014 raster which is INT16 (INT2U), convert to byte INT1U
+cbh_2014 <- rast("data/drone_data/cbh/rgb/cbh_2014.tif")
 cbh_2014[[1]] <- round((cbh_2014[[1]] / 65535) * 255)
 cbh_2014[[2]] <- round((cbh_2014[[2]] / 65535) * 255)
 cbh_2014[[3]] <- round((cbh_2014[[3]] / 65535) * 255)
 cbh_2014[[4]] <- round((cbh_2014[[4]] / 255) * 255)
 writeRaster(
     cbh_2014,
-    "data/drone_time_series/cbh_timeseries/rgb/cbh_2014_byte.tif",
+    "data/drone_data/cbh/rgb/cbh_2014_byte.tif",
     datatype = "INT1U",
     NAflag=NA,
     overwrite = TRUE
     )
-# Re run the above for cbh again (and remove the first raster)
-# Scan drone rasters to find that with the highest 95% refelctance values
 
 # Load drone rasters
-cbh_files <- list.files("data/drone_time_series/cbh_timeseries/rgb",
+cbh_files <- list.files("data/drone_data/cbh/rgb",
     ".tif$",
     full.names = T
 ) %>%
     .[-1] %>%
     lapply(rast)
-tlb_files <- list.files("data/drone_time_series/tlb_timeseries/rgb",
+tlb_files <- list.files("data/drone_data/tlb/rgb",
     ".tif$",
     full.names = T
 ) %>% lapply(rast)
-rdg_files <- list.files("data/drone_time_series/rdg_timeseries/rgb",
+rdg_files <- list.files("data/drone_daata/rgb",
     ".tif$",
     full.names = T
 ) %>% lapply(rast)
@@ -97,7 +97,7 @@ set_rownames <- function(x, y) {
     return(x)
 }
 
-# Get NA values for each band
+# Helper function to get NA values for each image and band
 get_na <- function(x) {
     # cat(sources(x), "\n")
     rast_q95 <- global(x, function(x) sum(is.na(x)))
@@ -112,13 +112,12 @@ cbh_na <- pblapply(cbh_files, get_na) %>% bind_rows()
 tlb_na <- pblapply(tlb_files, get_na) %>% bind_rows()
 rdg_na <- pblapply(rdg_files, get_na) %>% bind_rows()
 
-# arrange dataframes and caluclate max stats
+# Arrange dataframes and caluclate na stats
 cbh_na %>%
     bind_rows(tlb_na)  %>%
     bind_rows(rdg_na) 
 
-
-# Get max values for each band
+# Helper function to get max values for each band
 get_max <- function(x) {
     #cat(sources(x), "\n")
     rast_q95 <- global(x, max)
@@ -128,7 +127,19 @@ get_max <- function(x) {
         set_rownames(gsub(".*/rgb/(.*)\\.tif", "\\1", sources(x)))
 }
 
-# Get min values for each band
+# Get max values for all rasters
+cbh_max <- pblapply(cbh_files, get_max) %>% bind_rows()
+tlb_max <- pblapply(tlb_files, get_max) %>% bind_rows()
+rdg_max <- pblapply(rdg_files, get_max) %>% bind_rows()
+
+# arrange dataframes and caluclate cumulateive max
+cbh_max %>%
+    bind_rows(tlb_max)  %>%
+    bind_rows(rdg_max) %>%
+    mutate(sum = R + B + G) %>%
+    arrange(sum)
+
+# Helper function to get min values for each band
 get_min <- function(x) {
     #cat(sources(x), "\n")
     rast_q95 <- global(x, min)
@@ -138,22 +149,12 @@ get_min <- function(x) {
         set_rownames(gsub(".*/rgb/(.*)\\.tif", "\\1", sources(x)))
 }
 
-# Get 95% quantiles for all rasters
-cbh_max <- pblapply(cbh_files, get_max) %>% bind_rows()
-tlb_max <- pblapply(tlb_files, get_max) %>% bind_rows()
-rdg_max <- pblapply(rdg_files, get_max) %>% bind_rows()
-
-# Get 95% quantiles for all rasters
+# Get min values for all rasters
 cbh_min <- pblapply(cbh_files, get_min) %>% bind_rows()
 tlb_min <- pblapply(tlb_files, get_min) %>% bind_rows()
 rdg_min <- pblapply(rdg_files, get_min) %>% bind_rows()
 
-# arrange dataframes and caluclate max stats
-cbh_max %>%
-    bind_rows(tlb_max)  %>%
-    bind_rows(rdg_max) %>%
-    mutate(sum = R + B + G) %>%
-    arrange(sum)
+# Arrange dataframes
 cbh_min %>%
     bind_rows(rdg_min)  %>%
     bind_rows(tlb_min) 
@@ -173,60 +174,52 @@ cbh_q95 <- pblapply(cbh_files, get_q95) %>% bind_rows()
 tlb_q95 <- pblapply(tlb_files, get_q95) %>% bind_rows()
 rdg_q95 <- pblapply(rdg_files, get_q95) %>% bind_rows()
 
-# arrange dataframes and caluclate max stats
+# arrange dataframes and caluclate cumulative sum
 cbh_q95 %>%
     bind_rows(tlb_q95)  %>%
     bind_rows(rdg_q95) %>%
     mutate(sum = R + B + G) %>%
     arrange(sum)
-# Seems that tlb_2019_a is the overall brightest one statistically speaking, also in the blue band
+
+# Looking all good
+
+### Normalise imagery
 
 # Set target image for each time_series
-target_image <- "data/drone_time_series/cbh_timeseries/rgb/cbh_2017.tif"
-# cbh2017 Chosen on best seperation of water vs. no water in raw bcc
-
+# cbh_2017 Chosen as best seperation of water vs. no water in BCC
+# See raw BCC vs. normalised BCC plots
+target_image <- "data/drone_data/cbh/rgb/cbh_2017.tif"
 
 # Read in image file names
 image_list <- data.frame(
-    file = list.files("data/drone_time_series",
+    file = list.files("data/drone_data",
         pattern = "\\.tif$",
         recursive = T,
         full.names = T
     )
 ) %>%
-    filter(grepl("timeseries/", file)) %>%
-    filter(grepl(".*/rgb/.*", file)) %>%
-    filter(!grepl("native", file)) %>%
-    slice(-1)
+    filter(grepl(".*/rgb/.*", file)) %>% # Select only rgb rasters
+    filter(!grepl("native", file)) %>%  # Throw out native res rasters
+    filter(!grepl("cbh_2014\\.tif", file)) # Throw out wrongly coded cbh_2014 raster
 
 # Add image number
 image_list$image_no <- 1:nrow(image_list)
 
 # create output directories
-dir.create("data/drone_time_series/cbh_timeseries/norm")
-dir.create("data/drone_time_series/tlb_timeseries/norm")
-dir.create("data/drone_time_series/rdg_timeseries/norm")
+dir.create("data/dronde_data/cbh/norm")
+dir.create("data/dronde_data/tlb/norm")
+dir.create("data/dronde_data/rdg/norm")
 
-# prep cluster
-#cl <- makeCluster(1)
-#clusterEvalQ(cl, library(CRImage))
-# Correct images
+# Normalise all rasters using the helper function defined at top of script
 pblapply(
     image_list$file,
-    function(rast_file){
+    function(rast_file) {
         correct_image(rast_file, target_image)
     }
-    
-     #,
-    #cl = cl
-    )
-# Stop cluster
-#stopCluster(cl)
+)
+# Next -> confirm using file browser that converstion was satisfactory.
 
-# Now -> verify using file browser that converstion was satisfactory.
-
-# Next we need to copy the exif tags (note this will also copy the thumbnails
-# but the acual images are not affected)
+# Helper function to copy the exif tags (note thumbnails will not be copied)
 copy_tags <- function(src){
     exiftool_call(
       c("-tagsfromfile",
@@ -234,19 +227,26 @@ copy_tags <- function(src){
      gsub("(.*)rgb(.*)", "\\1norm\\2", src), 
      "-all:all"))
 }
+
+# Apply funciton to rasters
 map(
     image_list %>%
-        filter(!grepl(".*cbh_2014_byte.*", file)) %>% # The cbh 2014 file is somehow different
+        filter(!grepl(".*cbh_2014_byte.*", file)) %>% # Won't work for cbh_2014_byte see below
         pull(file),
     copy_tags
 )
 # Copy GPS tags only for cbh 2014
+# Get file path
 cbh_2014_file <- image_list %>%
     filter(grepl(".*cbh_2014_byte.*", file)) %>%
     pull(file)
+# Define target files
 chb_2014_target_file <- gsub("(.*)rgb(.*)", "\\1norm\\2", cbh_2014_file)
+# Load raster
 cbh_2014 <- rast(cbh_2014_file)
+# Duplicate
 chb_2014_target <- rast(chb_2014_target_file)
+# Assign tags
 ext(chb_2014_target) <- ext(cbh_2014)
 crs(chb_2014_target) <- crs(cbh_2014)
 # Write and re-write file
@@ -259,67 +259,21 @@ rm(chb_2014_target)
 file.remove(chb_2014_target_file)
 file.copy(gsub("\\.tif", "_new\\.tiff", chb_2014_target_file), chb_2014_target_file)
 file.remove(gsub("\\.tif", "_new\\.tiff", chb_2014_target_file))
-# # Copy geotiff tags only
-# exiftool_call(
-#     c(
-#         "-tagsfromfile",
-#         cbh_2014_file,
-#         gsub("(.*)rgb(.*)", "\\1norm\\2", cbh_2014_file),
-#         "--geotiff"
-#     )
-# )
 
-# Check everything worked well
-norm_rasters <- list.files("data/drone_time_series", full.names = T, recursive = T) %>%
-    .[grepl("cbh_timeseries", .) | grepl("tlb_timeseries", .) | grepl("rdg_timeseries", .) ] %>%
+# Remove back ups from tag copying
+list.files("data/drone_data", full.names = T, recursive = T) %>%
+    .[grepl("cbh/", .) | grepl("tlb/", .) | grepl("rdg/", .)] %>%
     .[grepl("norm", .)] %>%
-    .[!grepl("original", .)] %>%
+    .[grepl("_original", .)] %>%
+    file.remove()
+
+# Check all worked
+norm_rasters <- list.files("data/drone_data", full.names = T, recursive = T) %>%
+    .[grepl("cbh/", .) | grepl("tlb/", .) | grepl("rdg/", .) ] %>%
+    .[grepl("norm", .)] %>%
     lapply(rast)
 pblapply(norm_rasters, get_na) %>% bind_rows()
 pblapply(norm_rasters, get_min) %>% bind_rows()
 pblapply(norm_rasters, get_max) %>% bind_rows()
-# If yes: remove all original images
-# I recommend only doing that with a back up in place
-# map(image_list$file, function(x){
-#     file.remove(gsub("(.*)(\\..*)", "\\1_corrected\\2_original", x))
-# })
 
-# ## Finally, the alpha NA values for the RDG rasters need to be reset
-# # Get list of rdg raster files
-# rdg_rasters <- list.files("data/drone_time_series/rdg_timeseries/norm/", "tif",
-#                           full.names = T)
-
-# # Helper function to set NA values
-# set_NA <- function(rast_file){
-#   cat("Processing", rast_file, "\n")
-#   # Load raster
-#   rast_to_set <- rast(rast_file)
-#   # Set NA values based on alpha band
-#   cat("Setting NA's on Band 4 (alpha)... \n")
-#   rast_to_set[[4]] <- classify(rast_to_set[[4]], cbind(0, NA))
-#   # Copy NA values to other bands
-#   for(i in 1:3){
-#     cat("Setting Na's on Band", i, "...\n")
-#     rast_to_set[[i]][is.na(rast_to_set[[4]][])] <- NA
-#   }
-#   # Write out raster to temp file
-#   cat("Writing raster...\n")
-#   writeRaster(rast_to_set, 
-#               gsub("(.*)(\\.tif)", "\\1_NAset\\2", rast_file),
-#               overwrite = T)
-#   # # Unload rast
-#   # rm(rast_to_set)
-#   # gc()
-#   # # Remove old raster
-#   # file.remove(rast_file)
-#   # # Copy new raster
-#   # file.copy(gsub("(.*)(\\.tif)", "\\1_NAset\\2", rast_file),
-#   #           rast_file)
-#   # # Delete temp raster
-#   # file.remove(gsub("(.*)(\\.tif)", "\\1_NAset\\2", rast_file))
-#   cat("Done.\n")
-#   return(NULL)
-# }
-
-# # Apply to all files
-# lapply(rdg_rasters, set_NA)
+# End of file
