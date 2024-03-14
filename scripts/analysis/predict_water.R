@@ -184,7 +184,7 @@ best_thresh_site_year %>%
   mutate(site = gsub(".*(cbh|tlb|rdg).*", "\\1", site_year),
          year = gsub(".*[a-z]{3}_([0-9]{4}.*)", "\\1", site_year)) %>%
   select(-site_year) %>%
-  mutate(across(acc:sens_spec, ~ round(.x, 2))) %>%
+  mutate(across(threshold:sens_spec, ~ round(.x, 2))) %>%
   remove_rownames() %>%
   write_csv("tables/bcc_thersholds_site.csv")
 
