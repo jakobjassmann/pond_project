@@ -159,25 +159,29 @@ list.files("data/drone_data/rdg/preds", full.names = T) %>%
   .[!grepl("2017", .)] %>%
   file.copy(. , gsub("preds", "preds_filtered", .), overwrite = T)
 
-# Function to filter polygons within time-series
-filter_polys_overlap <- function(site_year_df){
+# Function to filter polygons within time-series based on intersection
+filter_polys_intersection <- function(site_year_df){
   # dummy site and year
-  # year_interest <- "2019_a"
-  # site_interest <- "tlb"
+  # year_interest <- "2017"
+  # site_interest <- "cbh"
   year_interest <- site_year_df %>% pull(year)
-  calendar_year <- gsub(".*([0-9]{4}).*", "\\1", year_interest)
   site_interest <- site_year_df %>% pull(site)
   cat("\n", site_interest, year_interest, "\n")
   
   # Filter size-filtered pond polygons for site
   pond_polys_site <- pond_polys_filtered_size %>% 
+    # for 2019, keep only the observation closest to the mean date of observation
+    # These are cbh 2019_b and tlb 2019_c (23 July 2019)
+    mutate(site_year = paste0(site, "_", year)) %>%
+    filter(!(site_year %in% c("cbh_2019", "tlb_2019_a", "tlb_2019_b"))) %>%
+    select(-site_year) %>%
     filter(site == site_interest) %>%
     ungroup() # remove any previous groupings, just in case
   
   # Get years in time-series and remove years different to the year of interest
   # and others in the same calendar year
   years <- unique(pond_polys_site$year)
-  other_years <- years[!grepl(calendar_year, years)] 
+  other_years <- years[!grepl(year_interest, years)] 
     #%>% .[!grepl("2017",.)] # remove 2017
   
   # Pull out polygons for year of interest
@@ -196,26 +200,28 @@ filter_polys_overlap <- function(site_year_df){
     filter((year %in% other_years)) %>%
     group_by(year) %>% # Group and split other years
     group_split() %>% 
-    # Calculate overlap of polygons for year of interest with polygons in other years
+    # Calculate intersection of polygons for year of interest with polygons in other years
     map(function(polys){
       data.frame(id = polys_year_interest$id,
                  year = polys_year_interest$year,
-                 overlaps = apply(st_overlaps(polys_year_interest, polys, sparse = F), 1, any))
+                 # Check whether ther is any intersection in year being processed for any given polygon
+                 intersects = apply(st_intersects(polys_year_interest, polys, sparse = F), 1, any))
     }) %>% 
     bind_rows() %>%
-    # Group by id and calculate total number of years with overlap
+    # Group by id and calculate total number of years with intersections
     group_by(id) %>%
-    summarise(overlaps = sum(overlaps)) %>%
+    summarise(intersections = sum(intersects)) %>%
     # Att overlaps column to polygons for year of interest
     full_join(polys_year_interest, ., by = c("id" = "id"))
   
   # Visualise for control
-  # ggplot(aes(fill = as.character(overlaps)), data = polys_year_filtered) +
+  # ggplot(aes(fill = as.character(intersections)), data = polys_year_filtered) +
   #   geom_sf(colour = NA) +
+  #   geom_sf_text(aes(label = id)) +
   #   theme_minimal()
 
-  # Retain only those polygons that have overlapping polygons in at least 3 other years
-  polys_year_filtered <- polys_year_filtered %>% filter(overlaps >= 3)
+  # Retain only those polygons that have intersecting polygons in at least 3 other years
+  polys_year_filtered <- polys_year_filtered %>% filter(intersections >= 3)
   
   # Visualise for control
   # ggplot(aes(fill = as.character(overlaps)), data = polys_year_filtered) +
@@ -229,28 +235,33 @@ filter_polys_overlap <- function(site_year_df){
     return()
 }
 
-# Apply filter to pond polygons based on overlap
-pond_polys_filtered_overlap <- pond_polys_filtered_size %>%
+# Apply filter to pond polygons based on intersection
+pond_polys_filtered_intersection <- pond_polys_filtered_size %>%
   st_drop_geometry() %>%
   distinct(site, year) %>%
   remove_rownames() %>%
   filter(site != "rdg") %>%
+  # for 2019, keep only the observation closest to the mean date of observation
+  # These are cbh 2019_b and tlb 2019_c (23 July 2019)
+  mutate(site_year = paste0(site, "_", year)) %>%
+  filter(!(site_year %in% c("cbh_2019", "tlb_2019_a", "tlb_2019_b"))) %>%
+  select(-site_year) %>%
   split(., 1:nrow(.)) %>%
-  pblapply(filter_polys_overlap) %>%
+  pblapply(filter_polys_intersection) %>%
   bind_rows() %>%
   bind_rows(filter(pond_polys_filtered_size, site == "rdg"))
 
 # Generate an overview table of size and number
-pond_polys_filtered_overlap %>%
+pond_polys_filtered_intersection %>%
   st_drop_geometry() %>%
   remove_rownames() %>%
   group_by(site, year) %>% tally() %>%
-  write_csv("tables/ponds_filtered_size_overlap.csv")
+  write_csv("tables/ponds_filtered_size_intersection.csv")
   
 # Generate figures to document filtering
 norm_rasters <- list.files("data/drone_data", "tif", full.names = T, recursive = T) %>%
   .[grepl("norm",. )]
-pond_polys_filtered_overlap %>%
+pond_polys_filtered_intersection %>%
   mutate(site_year = paste0(site, "_", year)) %>%
   split(., .$site_year) %>%
   pblapply(function(pond_polys_site_year){
@@ -274,7 +285,7 @@ pond_polys_filtered_overlap %>%
     #                                            1,1,
     #                                            NaN, NA), nrow = 3, byrow = T))
     # Convert to categorical
-    levels(pred_rast) <- data.frame(1, "water")
+    #levels(pred_rast) <- data.frame(1, "water")
     
     # Find matching ponds filtered by size only
     ponds_polys_size_only <- pond_polys_filtered_size %>%
@@ -314,8 +325,10 @@ pond_polys_filtered_overlap %>%
     return(NULL)
     }, cl = 31) 
 
-# Generate filtered rasters
-pond_polys_filtered_overlap %>%
+# Generate filtered rasters based on intersection
+# dir.create("data/drone_data/cbh/preds_filtered_intersection")
+# dir.create("data/drone_data/tlb/preds_filtered_intersection")
+pond_polys_filtered_intersection %>%
   mutate(site_year = paste0(site, "_", year)) %>%
   split(., .$site_year) %>%
   pblapply(function(polys_site){
@@ -325,9 +338,9 @@ pond_polys_filtered_overlap %>%
     # Generate raster
     site_rast <- pond_polys_to_raster(polys_site, preds_rasters)
     # Generate dir
-    dir.create(paste0("data/drone_data/", site_interest, "/preds_filtered_overlap"), showWarnings = F)
+    dir.create(paste0("data/drone_data/", site_interest, "/preds_filtered_intersection"), showWarnings = F)
     writeRaster(site_rast, 
-                paste0("data/drone_data/", site_interest, "/preds_filtered_overlap/", 
+                paste0("data/drone_data/", site_interest, "/preds_filtered_intersection/", 
                        site_interest, "_", year_interest, ".tif"), 
                 overwrite = T)
     return(NULL)
@@ -337,4 +350,6 @@ pond_polys_filtered_overlap %>%
 # Save polygons
 dir.create("data/pond_polys")
 write_sf(pond_polys_filtered_size, "data/pond_polys/pond_polys_filtered_size.gpkg")
-write_sf(pond_polys_filtered_overlap, "data/pond_polys/pond_polys_filtered_size_overlap.gpkg")
+# pond_polys_filtered_size <- read_sf("data/pond_polys/pond_polys_filtered_size.gpkg")
+write_sf(pond_polys_filtered_intersection, "data/pond_polys/pond_polys_filtered_size_intersection.gpkg")
+
