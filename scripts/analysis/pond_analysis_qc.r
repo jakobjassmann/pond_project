@@ -14,10 +14,14 @@ ponds_reference <- read_sf("data/pond_polygons/mock_time-series.gpkg")
 # Remove annototations for testing
 ponds <- select(ponds_reference, -pond_id) 
 
-# Add unique id to all ponds
-ponds <- mutate(ponds, id = 1:nrow(ponds))
+# Roughly arrange top-left to bottom-right an add unique id to all ponds
+ponds <- ponds %>%
+    # Arragne top-left to bottom-right corner
+    mutate(min_x = st_bbox(.)[1], min_y = st_bbox(.)[2]) %>%
+    arrange(min_y, min_y) %>%
+    select(-min_y, -min_y) %>%
+    mutate(id = 1:nrow(.))
 
-   
 # Helper function to check pond in next year
 ponds_intersecting_next_year <- function(pond_id, current_year, ponds) {
     # Get pond geometry,
@@ -57,9 +61,8 @@ check_intersection <- function(id_a, id_b) {
 # Get unqiue years in time-series and sort ascending
 years <- unique(ponds$year) %>% sort()
 
-
 # Function to track ponds from any given starting year
-start_year <- 2014
+#start_year <- 2014
 track_ponds <- function(start_year, ponds) {
     # Status
     cat("Getting pond time-series with start year:", start_year, "\n")
@@ -72,7 +75,12 @@ track_ponds <- function(start_year, ponds) {
         
     # Assing start ponds as first ponds in time series
     time_series <- filter(ponds, year == start_year) %>%
+        # Arragne top-left to bottom-right corner
+        mutate(min_x = st_bbox(.)[1], min_y = st_bbox(.)[2]) %>%
+        arrange(min_y, min_y) %>%
+        select(-min_y, -min_y) %>%
         st_drop_geometry() %>%
+        # Add identifier
         mutate(
             ts_id = paste0(year, "_", 1:nrow(.)),
             !!as.character(start_year) := id
@@ -113,7 +121,7 @@ track_ponds <- function(start_year, ponds) {
                 # Check if there is more than one pond in the next year
                 n_ids_next_year <- length(ids_next_year)
                 if (n_ids_next_year > 1) {
-                    # If yes fork time-series
+                    # If yes fork the time-series into multiples
                     # Prepare mulitple intersect column
                     m_intersect <- c(pond_ts$multiple_intersect, current_year) %>%
                         na.omit() %>%
@@ -128,15 +136,15 @@ track_ponds <- function(start_year, ponds) {
                         bind_rows()
 
                     # IMPORTANT! Check whether newly forked time-series make sense
-                    # If there nevery was a pond present before the split, then
+                    # If there never was a pond present before the split, then
                     # then any newly added ponds are not meaningful, but only
                     # for those ponds where there was not another split
 
-                    # Map across each new time_series to check consistency
+                    # Go across each new time_series to check consistency
                     pond_ts_new <- pond_ts_new %>%
                         split(1:nrow(.)) %>%
                         map(function(pond_ts_new_sub) {
-                            # Identify years in time-series with not previous split.
+                            # Identify years in time-series with no previous split.
                             no_split_years <- pond_ts_new_sub$multiple_intersect %>%
                                 unlist(recursive = TRUE) %>%
                                 unique() %>%
@@ -159,9 +167,15 @@ track_ponds <- function(start_year, ponds) {
                                 return()
                         }) %>%
                         bind_rows()
-                    # Filter out inconsisten time_series
+
+                    # If current year is the first year, assume the time-series
+                    # are consistent
+                    if (current_year == start_year) pond_ts_new$is_consistent <- TRUE
+                    
+                    # Filter out inconsistent time_series
                     pond_ts_new <- filter(pond_ts_new, is_consistent) %>%
                         select(-is_consistent)
+                    
                     # Update identifier if new rows were added
                     if (nrow(pond_ts_new) > 1) {
                         pond_ts_new <- mutate(pond_ts_new, ts_id = paste0(ts_id, "_", letters[1:nrow(pond_ts_new)]))
@@ -196,7 +210,8 @@ track_ponds <- function(start_year, ponds) {
     # Return time-series
     return(time_series)
 }
-track_ponds(2014, ponds)
+# Test function
+# track_ponds(2014, ponds)
 
 # Map accross start years
 time_series <- map(years, track_ponds, ponds = ponds) %>% bind_rows()
@@ -210,8 +225,8 @@ time_series$n_obs <- select(time_series, 3:last_col()) %>%
 time_series <- filter(time_series, n_obs >= 3) %>%
     relocate(ts_id, multiple_intersect, n_obs)
 
-# Determine combination of ponds
-time_series <- time_series %>% select(-last_col())
+# Concatenate combination of ponds into one colum
+# time_series <- time_series %>% select(-last_col())
 time_series$combination <- select(time_series, 4:last_col()) %>%
     split(1:nrow(.)) %>%
     map(function(x) {
@@ -222,26 +237,45 @@ time_series$combination <- select(time_series, 4:last_col()) %>%
         return(x)
     }) 
 
-unique(time_series$combination)
 
-# Status
-cat("Identified", nrow(time_series), "time-series!!!\n")
+# Retain only unique combinations, including removing subsets of other combinations
+time_series$is_unique <- time_series$combination %>%
+    # For each combination ...
+    sapply(function(x) {
+        # Determine how many other combinations it is contained in
+        n_combies_contained_in <- sapply(
+            time_series$combination,
+            function(y) all(x %in% y)
+        ) %>%
+            sum()
+        # Check whether it is one (i.e. quniue) and return
+        return(n_combies_contained_in == 1)
+    })
+time_series <- time_series %>%
+    filter(is_unique) %>%
+    select(-is_unique)
+
+# Summarise findings
+cat("Identified", nrow(time_series), "unique time-series!!!\n")
 
 # Plot time-series
 time_series %>%
     split(time_series$ts_id) %>%
-    map(function(x) {
-       # Get ponds for time_series
-       ts_ponds <- filter(ponds, id %in% (
-           select(x, -n_obs) %>%
-               select(3:last_col()) %>%
-               unlist()))
+    sapply(function(x) {
+        # Get ponds for time_series
+        ts_ponds <- filter(ponds, id %in% unlist(x$combination))
         print(ggplot(data = ts_ponds) +
-            geom_sf(aes(colour = year), fill = NA, size = 2) +
+            geom_sf(fill = NA, size = 2) +
             geom_sf_text(aes(label = id)) +
-            facet_wrap(~year) +
-            coord_sf(xlim = st_bbox(ts_ponds)[c(1,3)],
-                    ylim = st_bbox(ts_ponds)[c(2,4)]) +
+            facet_wrap(~year, nrow = 1) +
+            coord_sf(
+                xlim = st_bbox(ts_ponds)[c(1, 3)],
+                ylim = st_bbox(ts_ponds)[c(2, 4)]
+            ) +
             labs(title = x$ts_id) +
-            theme_map())
+            theme_map() +
+            theme(legend.position = "none"))
+        return(NULL)
     })
+
+# This algorithm seems to work well! :)
