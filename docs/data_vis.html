@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!--- Leaflet CSS stylesheet (needs to be loaded before leaflet js) --->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="" />
+
+    <!--- Leaflet js --->
+	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+
+    <!--- Georaster js --->
+    <script src="https://unpkg.com/georaster"></script>
+
+    <!--- Georaster-Layer-For-leaflet js --->
+	<script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js"></script>
+
+    <!--- Leaflet AJAX js for easy remote loading of GeoJSON geometries --->
+    <script src="js/leaflet.ajax.min.js"></script>
+
+    <!--- Leaflet Mouse Coordinates https://github.com/ardhi/Leaflet.MousePosition --->
+    <link rel="stylesheet" href="js/L.Control.MousePosition.css"></link>
+    <script src="js/L.Control.MousePosition.js"></script>
+
+    <!---  File specific CSS styles --->
+	<style>
+        /* Overall map style */
+        #map {position: absolute; top: 0; bottom: 0; left: 0; right: 0;}
+
+        /* Leaflet layer control */
+        .leaflet-control-layers{
+            background: rgba(255, 255, 255, 0.8);
+            padding: 6px 8px;
+            color: #555;
+            border-radius: 0;
+        }
+
+        .leaflet-control-layers:before{
+            content:"Layer Control";
+            color:#777;
+            font: normal normal bold 16px Arial, Helvetica, sans-serif;
+            padding: 6px 4px;
+            line-height: 24px;
+        }
+
+        /* Legend specific */
+        .legend {
+            padding: 6px 8px;
+            font: 14px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255, 255, 255, 0.8);
+            /*box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);*/
+            /*border-radius: 5px;*/
+            line-height: 24px;
+            color: #555;
+        }
+
+        .legend h4 {
+            text-align: left;
+            font-size: 16px;
+            margin: 2px 12px 8px;
+            color: #777;
+        }
+
+        .legend span {
+            position: relative;
+            margin: 0 0px 0 8px;
+            bottom: 3px;
+        }
+
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin: 0 8px 0 14px;
+            opacity: 1;
+        }
+
+        .legend i.icon {
+            background-size: 18px;
+            background-color: rgba(255, 255, 255, 1);
+        }
+	</style>
+</head>
+<body>
+    <!--- Leflet map container --->
+	<div id = "map"></div>
+
+    <!--- JS script to build leaflet map --->
+	<script>
+        // initalize leaflet map
+      var map = L.map('map').setView([0, 0], 5);
+
+// add OpenStreetMap basemap
+L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+var url_to_geotiff_file = "https://pondproject.s3.amazonaws.com/cogs/cbh_2014_cog.tif";
+
+parseGeoraster(url_to_geotiff_file).then(georaster => {
+  console.log("georaster:", georaster);
+
+  /*
+      GeoRasterLayer is an extension of GridLayer,
+      which means can use GridLayer options like opacity.
+
+      Just make sure to include the georaster option!
+
+      http://leafletjs.com/reference-1.2.0.html#gridlayer
+  */
+  var layer = new GeoRasterLayer({
+      attribution: "Planet",
+      georaster: georaster,
+      resolution: 128
+  });
+  layer.addTo(map);
+
+  map.fitBounds(layer.getBounds());
+
+});
+	</script>
+</body>
+</html>
