@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+            <title>Kytalyk Ponds 2014-2021</title>
+
+            <!-- Leaflet -->
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@0.7.5/dist/leaflet.css" />
+            <script src="https://unpkg.com/leaflet@0.7.5/dist/leaflet.js"></script>
+
+            <!--- Leaflet AJAX js for easy remote loading of GeoJSON geometries --->
+            <script src="./leaflet.ajax.js"></script>
+
+            <style>
+                body { margin:0; padding:0; }
+                body, table, tr, td, th, div, h1, h2, input { font-family: "Calibri", "Trebuchet MS", "Ubuntu", Serif; font-size: 11pt; }
+                #map { position:absolute; top:0; bottom:0; width:100%; } /* full size */
+                .ctl {
+                    padding: 2px 10px 2px 10px;
+                    background: white;
+                    background: rgba(255,255,255,0.9);
+                    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+                    border-radius: 5px;
+                    text-align: right;
+                }
+                .title {
+                    font-size: 18pt;
+                    font-weight: bold;
+                }
+                .src {
+                    font-size: 10pt;
+                }
+
+            </style>
+
+        </head>
+        <body>
+
+        <div id="map" style="background:black"></div>
+
+        <script>
+        /* **** Leaflet **** */
+
+        // Specify bounds for dron TMS layers
+        var bounds = L.latLngBounds(L.latLng(70.82727980950429, 147.5013505535841), L.latLng(70.83575920299582, 147.457309738455))
+        var bounds2016 = L.latLngBounds(L.latLng(70.83037808705538, 147.50135088372377), L.latLng(70.83572476499079, 147.4710705907545))
+
+        // Load drone imagery (TMS layers)
+        var rgb2014 = L.tileLayer('https://pondproject.s3.eu-central-1.amazonaws.com/2014/{z}/{x}/{y}.png', {tms: 1, bounds: bounds, opacity: 1, attribution: "", minZoom: 14, maxZoom: 20});
+        var rgb2016 = L.tileLayer('https://pondproject.s3.eu-central-1.amazonaws.com/2016/{z}/{x}/{y}.png', {tms: 1, bounds: bounds2016, opacity: 1, attribution: "", minZoom: 14, maxZoom: 20});
+        var rgb2017 = L.tileLayer('https://pondproject.s3.eu-central-1.amazonaws.com/2017/{z}/{x}/{y}.png', {tms: 1, bounds: bounds, opacity: 1, attribution: "", minZoom: 14, maxZoom: 20});
+        var rgb2018 = L.tileLayer('https://pondproject.s3.eu-central-1.amazonaws.com/2018/{z}/{x}/{y}.png', {tms: 1, bounds: bounds, opacity: 1, attribution: "", minZoom: 14, maxZoom: 20});
+        var rgb2019 = L.tileLayer('https://pondproject.s3.eu-central-1.amazonaws.com/2019/{z}/{x}/{y}.png', {tms: 1, bounds: bounds, opacity: 1, attribution: "", minZoom: 14, maxZoom: 20});
+        var rgb2020 = L.tileLayer('https://pondproject.s3.eu-central-1.amazonaws.com/2020/{z}/{x}/{y}.png', {tms: 1, bounds: bounds, opacity: 1, attribution: "", minZoom: 14, maxZoom: 20});
+        var rgb2021 = L.tileLayer('https://pondproject.s3.eu-central-1.amazonaws.com/2021/{z}/{x}/{y}.png', {tms: 1, bounds: bounds, opacity: 1, attribution: "", minZoom: 14, maxZoom: 20});
+
+        // Define map
+        var map = L.map('map', {
+            center: [70.83151950625006, 147.47933014601955],
+            zoom: 15,
+            minZoom: 15,
+            maxZoom: 20,
+            layers: [rgb2021]
+        });
+
+        // Create new layerGroup for geometries and markers and add it to map
+        var geometryLayers = new L.LayerGroup().addTo(map);
+
+        // Helper function to add text labels and format pop up of the geometry layers
+        function stylePopupAndLabel(feature, layer) {
+                var popupContent = "<p><b>Pond Time-Series ID:</b> "+ feature.properties.ts_id +"<br>Pond evolution:<a target='_blank' href='" + layer.feature.properties.url + "'><img src='" + layer.feature.properties.url + "' style='width:300px'></a>(Click image to open in new tab.)</p>";
+                layer.bindPopup(popupContent);
+                var label = L.marker(layer.getBounds().getCenter(), {
+                    icon: L.divIcon({
+                    className: 'label',
+                    html: "<p style='color:white;font-size:8px'>" + feature.properties.ts_id + "</p>",
+                    iconSize: [20, 20]
+                    })}).addTo(geometryLayers);
+        };
+        
+        // Geometry layer for the pond time-series
+        var pondTimeSeries = new L.geoJson.ajax("https://pondproject.s3.eu-central-1.amazonaws.com/pond_time_series.geojson",  {
+            onEachFeature: stylePopupAndLabel,
+            color: "#82C4F5",
+            fillOpacity: 0.4,
+            weight: 1
+        });
+        // Add to map and open pop-ups
+        pondTimeSeries.addTo(geometryLayers).openPopup();
+        
+        // drone imagery as base maps
+        var droneImagery = {"2021 drone images": rgb2021,
+                           "2020 drone images": rgb2020,
+                           "2019 drone images": rgb2019,
+                           "2018 drone images": rgb2018,
+                           "2017 drone images": rgb2017,
+                           "2016 drone images": rgb2016,
+                           "2014 drone images": rgb2014
+        };
+
+        // Title to top right
+        var title = L.control();
+        title.onAdd = function(map) {
+            this._div = L.DomUtil.create('div', 'ctl title');
+            this.update();
+            return this._div;
+        };
+        title.update = function(props) {
+            this._div.innerHTML = "Kytalyk Ponds 2014-2021";
+        };
+        title.addTo(map);
+
+        // Note to bottom left
+        var src = 'Copyright &copy; Assmann et al. 2024 - E-Mail:<a href="mailto:jakob.assmann@uzh.ch">jakob.assmann@uzh.ch</a>';
+        var title = L.control({position: 'bottomleft'});
+        title.onAdd = function(map) {
+            this._div = L.DomUtil.create('div', 'ctl src');
+            this.update();
+            return this._div;
+        };
+        title.update = function(props) {
+            this._div.innerHTML = src;
+        };
+        title.addTo(map);
+
+        // Add base layers
+        L.control.layers(droneImagery, {"Ponds (mean extent)": geometryLayers}, {collapsed: false}).addTo(map);
+
+        // Fit to overlay bounds (SW and NE points with (lat, lon))
+        map.fitBounds([[70.82727980950429, 147.5013505535841], [70.83575920299582, 147.457309738455]]);
+
+        </script>
+
+        </body>
+        </html>
+
+        
