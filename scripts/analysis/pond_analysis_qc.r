@@ -47,9 +47,10 @@ ponds_intersecting_next_year <- function(pond_id, current_year, ponds) {
 }
 
 # Helper function to check whether two ponds overlap based on id
-check_intersection <- function(id_a, id_b) {
+check_intersection <- function(id_a, id_b, ponds) {
     # Get ponds
-    pond_a <- filter(ponds, id == id_a)
+    pond_a <- filter(ponds, id %in% id_a)
+    if(nrow(pond_a) > 1) pond_a <- st_union(pond_a)
     pond_b <- filter(ponds, id == id_b)
     if(length(unlist(st_intersects(pond_a, pond_b))) > 0) {
         return(TRUE)
@@ -126,6 +127,8 @@ track_ponds <- function(start_year, ponds) {
                     m_intersect <- c(pond_ts$multiple_intersect, current_year) %>%
                         na.omit() %>%
                         unlist()
+
+                    # If this is the first year split the time-series
                     # Split tibble and update multiple intersect colum
                     pond_ts_new <- map(1:n_ids_next_year, function(x) {
                         pond_ts %>% mutate(
@@ -134,7 +137,6 @@ track_ponds <- function(start_year, ponds) {
                         )
                     }) %>%
                         bind_rows()
-
                     # IMPORTANT! Check whether newly forked time-series make sense
                     # If there never was a pond present before the split, then
                     # then any newly added ponds are not meaningful, but only
@@ -157,7 +159,8 @@ track_ponds <- function(start_year, ponds) {
                             is_consistent <- sapply(no_split_years, function(x) {
                                 check_intersection(
                                     unlist(pond_ts_new_sub[1, colnames(pond_ts_new_sub) == current_year + 1]),
-                                    unlist(pond_ts_new_sub[1, colnames(pond_ts_new_sub) == x])
+                                    unlist(pond_ts_new_sub[1, colnames(pond_ts_new_sub) == x]),
+                                    ponds
                                 )
                             }) %>%
                                 any()
