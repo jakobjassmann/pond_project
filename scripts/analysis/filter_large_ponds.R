@@ -42,13 +42,22 @@ preds_rasters <- c(
   list.files("data/drone_data/rdg/preds/", full.names = T))
 
 # Helper function to get pond polygons
-get_pond_polys <- function(pred_file){
+get_pond_polys <- function(pred_file, site = NA){
   #pred_file <- preds_rasters[2]
-  cat(pred_file, "\n")
-  
-  # Load raster
-  pred_rast <- rast(pred_file)
-  
+
+  # Load raster or reassign object for further handling if raster is provided
+  if(is.character(pred_file)){
+    cat(pred_file, "\n")
+    pred_rast <- rast(pred_file)
+    site <- gsub(".*/(cbh|tlb|rdg)/.*", "\\1", pred_file)
+    year <- gsub(".*(20[0-9][0-9].*)_preds.*.tif", "\\1\\2", pred_file)
+  } else if("SpatRaster" %in% class(pred_file)) {
+    cat("Getting ponds for composite...\n")
+    pred_rast <- pred_file
+    site <- site
+    year <- "composite"
+  }
+
   # Set non-water values to NA
   pred_rast <- classify(pred_rast, matrix(c(0,NA,
                                             1,1,
@@ -67,8 +76,8 @@ get_pond_polys <- function(pred_file){
   water_polys$area <-st_area(water_polys)
   
   # Add metadata colums
-  water_polys$site <- gsub(".*/(cbh|tlb|rdg)/.*", "\\1", pred_file)
-  water_polys$year <- gsub(".*(20[0-9][0-9].*)_preds.*.tif", "\\1\\2", pred_file)
+  water_polys$site <- site
+  water_polys$year <- year
   
   # return sf object
   return(water_polys)
@@ -93,6 +102,9 @@ write_csv(pond_polys_n_by_size,
 
 # Filter out all ponds smaller than 1 m2 (approx 500 pixels)
 pond_polys_filtered_size <- pond_polys %>% filter(area >= set_units(1, "m^2"))
+
+# Save filtered polygons to file
+write_sf(pond_polys_filtered_size, "data/pond_polys/pond_polys_filtered_size.gpkg")
 
 # # Remove erroneous rdg data outside the area of interest
 # rdg_aoi <- read_sf("data/drone_time_series/rdg_timeseries/rdg_study_aoi.shp")
@@ -159,197 +171,188 @@ list.files("data/drone_data/rdg/preds", full.names = T) %>%
   .[!grepl("2017", .)] %>%
   file.copy(. , gsub("preds", "preds_filtered", .), overwrite = T)
 
-# Function to filter polygons within time-series based on intersection
-filter_polys_intersection <- function(site_year_df){
-  # dummy site and year
-  # year_interest <- "2017"
-  # site_interest <- "cbh"
-  year_interest <- site_year_df %>% pull(year)
-  site_interest <- site_year_df %>% pull(site)
-  cat("\n", site_interest, year_interest, "\n")
-  
-  # Filter size-filtered pond polygons for site
-  pond_polys_site <- pond_polys_filtered_size %>% 
-    # for 2019, keep only the observation closest to the mean date of observation
-    # These are cbh 2019_b and tlb 2019_c (23 July 2019)
-    mutate(site_year = paste0(site, "_", year)) %>%
-    filter(!(site_year %in% c("cbh_2019", "tlb_2019_a", "tlb_2019_b"))) %>%
-    select(-site_year) %>%
-    filter(site == site_interest) %>%
-    ungroup() # remove any previous groupings, just in case
-  
-  # Get years in time-series and remove years different to the year of interest
-  # and others in the same calendar year
-  years <- unique(pond_polys_site$year)
-  other_years <- years[!grepl(year_interest, years)] 
-    #%>% .[!grepl("2017",.)] # remove 2017
-  
-  # Pull out polygons for year of interest
-  polys_year_interest <- pond_polys_site %>% 
-    filter(year == year_interest) %>% 
-    mutate(id = 1:nrow(.)) # add id
-  
-  # Visual check
-  # ggplot(polys_year_interest) + 
-  #   geom_sf(aes(fill = as.character(id)), colour = NA) + 
-  #   theme_minimal() +
-  #   theme(legend.position = "none")
-  
-  # Determine overlap of pond polygons for year of interest with other years
-  polys_year_filtered <- pond_polys_site %>% # Filter out polygons for year of interest
-    filter((year %in% other_years)) %>%
-    group_by(year) %>% # Group and split other years
-    group_split() %>% 
-    # Calculate intersection of polygons for year of interest with polygons in other years
-    map(function(polys){
-      data.frame(id = polys_year_interest$id,
-                 year = polys_year_interest$year,
-                 # Check whether ther is any intersection in year being processed for any given polygon
-                 intersects = apply(st_intersects(polys_year_interest, polys, sparse = F), 1, any))
-    }) %>% 
-    bind_rows() %>%
-    # Group by id and calculate total number of years with intersections
-    group_by(id) %>%
-    summarise(intersections = sum(intersects)) %>%
-    # Att overlaps column to polygons for year of interest
-    full_join(polys_year_interest, ., by = c("id" = "id"))
-  
-  # Visualise for control
-  # ggplot(aes(fill = as.character(intersections)), data = polys_year_filtered) +
-  #   geom_sf(colour = NA) +
-  #   geom_sf_text(aes(label = id)) +
-  #   theme_minimal()
 
-  # Retain only those polygons that have intersecting polygons in at least 3 other years
-  polys_year_filtered <- polys_year_filtered %>% filter(intersections >= 3)
-  
-  # Visualise for control
-  # ggplot(aes(fill = as.character(overlaps)), data = polys_year_filtered) +
-  #   geom_sf(colour = NA) +
-  #   theme_minimal()
-   
-  # Clean up metadata and return filtered ponds
-  polys_year_filtered %>%
-    select(-bcc) %>%
-    mutate(id = 1:nrow(.)) %>%
-    return()
-}
+### Identify pond id based on max extend across the time-series (excluding 2017)
 
-# Apply filter to pond polygons based on intersection
-pond_polys_filtered_intersection <- pond_polys_filtered_size %>%
-  st_drop_geometry() %>%
-  distinct(site, year) %>%
-  remove_rownames() %>%
-  filter(site != "rdg") %>%
+## Calculate max area composites excluding 2017
+
+# Prepare prediction raster meta data
+preds_rasters_meta <- tibble(file = preds_rasters) %>%
+  mutate(site = gsub(".*(cbh|rdg|tlb).*", "\\1", file),
+         year = gsub(".*_([0-9]{4})_.*", "\\1", file)) %>%
+  mutate(site_year = paste0(site, "_", year)) %>%
+  # for 2019, keep only the observation closest to the mean date of observation
+  # These are cbh 2019_b and tlb 2019_c (23 July 2019)
+  filter(!(site_year %in% c("cbh_2019", "tlb_2019_a", "tlb_2019_b"))) %>%
+  # Arrange by site and year
+  arrange(site, year) %>%
+  # Remove 2017 as this is an outlier year
+  filter(year != 2017) %>%
+  # Exclude rdg as time-series is empty except for 2017
+  filter(site != "rdg") 
+
+# Generate cross time-series composites, generate polygons and assign time-series ids
+pond_time_series_ids <- preds_rasters_meta %>%
+  split(.$site) %>%
+  map(function(meta_sub){
+    cat("Generating max value composite for:", unique(meta_sub$site), "\n")
+    # Load rasters
+    meta_sub %>% 
+      pull(file) %>% 
+      rast() %>% 
+      # Max value composite (0,1 rasters)
+      app(., max) %>%
+      # Get polygons using helper function
+      get_pond_polys(., site = unique(meta_sub$site)) %>%
+      # Keep only ponds larger than 1 m2
+      filter(area >= set_units(1, "m^2")) %>%
+      # roughly arrange top-left to bottom-right corner
+      mutate(min_x = st_bbox(.)[1], min_y = st_bbox(.)[2]) %>%
+      arrange(min_y, min_y) %>%
+      select(-min_y, -min_x) %>%
+      # Add id column
+      mutate(ts_id = paste0(unique(.$site), "_", formatC(1:nrow(.), width = 3, flag = "0")))
+  }) %>%
+    bind_rows()
+
+# Quick visual check
+pond_time_series_ids %>%
+  split(.$site) %>%
+  map(function(x){
+    ggplot(x) +
+      geom_sf(colour = NA, fill = "lightblue") +
+      geom_sf_text(aes(label = ts_id), size = 1) +
+      theme_map()})
+
+## Prepare other yearly ponds for matching
+
+# Restrict time-series analysis to one scene per year
+ponds_for_time_series <- pond_polys_filtered_size %>% 
   # for 2019, keep only the observation closest to the mean date of observation
   # These are cbh 2019_b and tlb 2019_c (23 July 2019)
   mutate(site_year = paste0(site, "_", year)) %>%
   filter(!(site_year %in% c("cbh_2019", "tlb_2019_a", "tlb_2019_b"))) %>%
-  select(-site_year) %>%
-  split(., 1:nrow(.)) %>%
-  pblapply(filter_polys_intersection) %>%
-  bind_rows() %>%
-  bind_rows(filter(pond_polys_filtered_size, site == "rdg"))
+  select(-site_year)
 
-# Generate an overview table of size and number
-pond_polys_filtered_intersection %>%
-  st_drop_geometry() %>%
-  remove_rownames() %>%
-  group_by(site, year) %>% tally() %>%
-  write_csv("tables/ponds_filtered_size_intersection.csv")
-  
-# Generate figures to document filtering
-norm_rasters <- list.files("data/drone_data", "tif", full.names = T, recursive = T) %>%
-  .[grepl("norm",. )]
-pond_polys_filtered_intersection %>%
+# Convert year column to integer
+ponds_for_time_series <- ponds_for_time_series %>%
+  mutate(year = as.integer(gsub(".*([0-9]{4}).*", "\\1", year)))
+
+# Assign ids to individual ponds
+ponds_for_time_series <- ponds_for_time_series %>%
   mutate(site_year = paste0(site, "_", year)) %>%
   split(., .$site_year) %>%
-  pblapply(function(pond_polys_site_year){
-    # Set site and year of interest
-    site_interest <- unique(pond_polys_site_year$site)
-    year_interest <- unique(pond_polys_site_year$year)
-    
-    # Find matching norm raster
-    norm_file <- norm_rasters[grepl(site_interest, norm_rasters)] %>%
-      .[grepl(year_interest, .)]
-    # Load raster
-    norm_rast <- rast(norm_file)
-    
-    # # Find matching original prediction raster
-    # pred_file <- preds_rasters[grepl(site_interest, preds_rasters)] %>%
-    #   .[grepl(year_interest, .)]
-    # # Load raster
-    # pred_rast <- rast(pred_file)
-    #     # Set non-water values to NA
-    # pred_rast <- classify(pred_rast,  matrix(c(0,NA,
-    #                                            1,1,
-    #                                            NaN, NA), nrow = 3, byrow = T))
-    # Convert to categorical
-    #levels(pred_rast) <- data.frame(1, "water")
-    
-    # Find matching ponds filtered by size only
-    ponds_polys_size_only <- pond_polys_filtered_size %>%
-      filter(site == site_interest, year == year_interest)
-      
-    # Generate plot
-    filter_plot <- plot_grid(
-      # Plot norm raster
-      ggplot() +
-        geom_spatraster_rgb(data = norm_rast, max_col_value = 65535) +
-        labs(title = paste(site_interest, year_interest)) +
-        theme_map() +
-        theme(legend.position = "none",
-              plot.title = element_text(hjust = 0.5)),
-      # Plot pond predictions
-      ggplot() +
-      geom_spatraster_rgb(data = norm_rast, max_col_value = 65535) +
-        #geom_spatraster(data = pred_rast) +
-        geom_sf(data = ponds_polys_size_only, colour ="NA", fill = "#E0C20D") +
-        geom_sf(data = pond_polys_site_year, colour ="NA", fill = "magenta") +
-        #scale_fill_manual(values = c("#00DEE0"), na.value = NA) +
-      labs(title = "ponds: 1+ m2 (yellow) - persistent (magenta)") +
-        theme_map() +
-        theme(legend.position = "none",
-              plot.title = element_text(hjust = 0.5)))
-    
-    # Save plot
-    dir.create(paste0("figures/", site_interest, "/ponds_filtered/"), showWarnings = F)
-    save_plot(filename = paste0("figures/", site_interest, "/ponds_filtered/", site_interest, "_", year_interest, ".png"), 
-              filter_plot,
-              base_asp = 2 * (ext(norm_rast)[2] - ext(norm_rast)[1]) / 
-                (ext(norm_rast)[4] - ext(norm_rast)[3]), 
-              base_height = 6,
-              bg = "white")
-    
-    # Return null
-    return(NULL)
-    }, cl = 31) 
+  map(function(ponds){
+    ponds %>%
+      mutate(id = paste0(unique(.$site_year), "_", formatC(1:nrow(.), width = 4, flag = "0")))
+  }) %>%
+  # Re combine dataframe 
+  bind_rows()
 
-# Generate filtered rasters based on intersection
-# dir.create("data/drone_data/cbh/preds_filtered_intersection")
-# dir.create("data/drone_data/tlb/preds_filtered_intersection")
-pond_polys_filtered_intersection %>%
-  mutate(site_year = paste0(site, "_", year)) %>%
+# reset row names
+row.names(ponds_for_time_series) <- NULL
+
+### Determine intersecting ponds for each year
+# pond_ts <- pond_time_series_ids[1,]
+pond_time_series_ids <- pond_time_series_ids %>%
+  split(1:nrow(.)) %>%
+  pblapply(function(pond_ts){
+    # Status
+    cat(pond_ts$ts_id, "\n")
+    # Get years in time-series
+    years_in_ts <- ponds_for_time_series %>% 
+      filter(site == pond_ts$site) %>% 
+      pull(year) %>% 
+      unique()
+    # Find overlapping polygons in each year
+    intersecting_ponds <- map(years_in_ts, function(current_year){
+      cat(current_year, "\n")
+      # Filter ponds for current year
+      ponds_year <- ponds_for_time_series %>% 
+        filter(year == current_year & site == pond_ts$site)
+      # Get intersecting indices
+      intersect_index <- st_intersects(pond_ts, ponds_year) %>%
+        unlist()
+      # Check whether intersection is empty
+      if(length(intersect_index == 0)) intersecting_ids <- NA
+      # Determine intersecting pond ids
+      intersecting_ids <- ponds_year[intersect_index,]$id
+      tibble(year = current_year,
+             intersecting_ids = list(intersecting_ids))
+    }) %>% bind_rows()
+    # Tally years with intersection
+    n_years <- sum(sapply(intersecting_ponds$intersecting_ids, 
+                        function(x) length(x) > 0))
+    combination = intersecting_ponds$intersecting_ids %>% 
+      unlist(recursive = T) %>% 
+      na.omit()
+    # Reformat tibble and append
+    pond_ts <- pivot_wider(intersecting_ponds, 
+                           names_from = year, 
+                           values_from = intersecting_ids) %>%
+      cbind(pond_ts,.) %>%
+      mutate(n_years = n_years,
+             combination = list(combination))
+    # Return updated pond_ts object
+    return(pond_ts)
+  }, cl = 31) %>% 
+  bind_rows() %>% 
+  # Remove time-series with less than three years of observations
+  filter(n_years >= 3)
+
+# Quick check of key stats
+pond_time_series_ids %>%
+  st_drop_geometry() %>%
+  group_by(site) %>%
+  tally()
+ggplot(pond_time_series_ids) + geom_histogram(aes(x = n_years), binwidth = 1)
+
+# Re-assign time-series ids going from 1:n(ids)
+# roughly arrange top-left to bottom-right corner
+pond_time_series_ids <- pond_time_series_ids %>%
+  split(.$site) %>%
+  map(function(ponds){
+    ponds %>%
+      # Roughly arrange top-left to bottom-right
+      mutate(min_x = st_bbox(.)[1], min_y = st_bbox(.)[2]) %>%
+      arrange(min_y, min_y) %>%
+      select(-min_y, -min_x) %>%
+      # Add id column
+      mutate(ts_id = paste0(unique(.$site), "_", formatC(1:nrow(.), width = 3, flag = "0")))
+  }) %>% bind_rows()
+    
+# Write out files
+save(pond_time_series_ids, file = "data/pond_polys/pond_time_series.Rda")
+write_sf(ponds_for_time_series, "data/pond_polys/ponds_for_time_series.gpkg")
+# Time-series for GIS use
+write_sf(select(pond_time_series_ids, ts_id, site, year, area, geometry), "data/pond_polys/pond_time_series.gpkg")
+
+# Generate filtered rasters from time-series 
+ponds_for_time_series %>%
+  filter(site != "rdg") %>%
   split(., .$site_year) %>%
   pblapply(function(polys_site){
     # Set site and year of interest
     site_interest <- unique(polys_site$site)
     year_interest <- unique(polys_site$year)
+    # Filter out ponds not included in time-series
+    year_selector <- paste0("X", year_interest)
+    ts_ids_site_year <- pond_time_series_ids %>%
+      filter(site == site_interest) %>%
+      pull(!!year_selector) %>%
+      unlist(recursive = T)
+    polys_site <- polys_site %>%
+      filter(id %in% ts_ids_site_year)
     # Generate raster
     site_rast <- pond_polys_to_raster(polys_site, preds_rasters)
     # Generate dir
-    dir.create(paste0("data/drone_data/", site_interest, "/preds_filtered_intersection"), showWarnings = F)
-    writeRaster(site_rast, 
-                paste0("data/drone_data/", site_interest, "/preds_filtered_intersection/", 
-                       site_interest, "_", year_interest, ".tif"), 
+    dir.create(paste0("data/drone_data/", site_interest, "/preds_filtered_time_series"), showWarnings = F)
+    writeRaster(site_rast,
+                paste0("data/drone_data/", site_interest, "/preds_filtered_time_series/",
+                       site_interest, "_", year_interest, ".tif"),
                 overwrite = T)
     return(NULL)
-  }, 
+  },
   cl = 31)
 
-# Save polygons
-dir.create("data/pond_polys")
-write_sf(pond_polys_filtered_size, "data/pond_polys/pond_polys_filtered_size.gpkg")
-# pond_polys_filtered_size <- read_sf("data/pond_polys/pond_polys_filtered_size.gpkg")
-write_sf(pond_polys_filtered_intersection, "data/pond_polys/pond_polys_filtered_size_intersection.gpkg")
 

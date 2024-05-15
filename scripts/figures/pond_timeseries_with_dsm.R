@@ -9,19 +9,25 @@ library(sf)
 library(cowplot)
 library(colorspace)
 library(pbapply)
+library(resmush)
 
-# Load ponds filtered by size and overlap
-ponds <- read_sf("data/pond_polys/pond_polys_filtered_size_intersection.gpkg")
+# Load ponds and time-series
+ponds <- read_sf("data/pond_polys/ponds_for_time_series.gpkg")
+load("data/pond_polys/pond_time_series.Rda")
 
-# Add unique id to each ponds across both remaining sites
-ponds <- ponds %>%
-  mutate(site_spec_id = id) %>%
-  mutate(., id = 1:nrow(.)) 
+# # Load ponds filtered by size and overlap
+# ponds <- read_sf("data/pond_polys/pond_polys_filtered_size_intersection.gpkg")
+# 
+# # Add unique id to each ponds across both remaining sites
+# ponds <- ponds %>%
+#   mutate(site_spec_id = id) %>%
+#   mutate(., id = 1:nrow(.)) 
 
 # Generate pond overview maps
 save_plot("figures/cbh/map_individual_ponds_cbh.png",
           ggplot(filter(ponds, site == "cbh")) +
-  geom_sf(aes(fill = as.factor(intersections)), colour = NA) +
+  geom_sf(#(fill = as.factor(n_years)), 
+    colour = NA, fill = "darkblue") +
   geom_sf_text(aes(label = id), size = 1) +
   facet_wrap(~year) +
   labs(fill = "n years w/\nintersections") +
@@ -31,7 +37,8 @@ save_plot("figures/cbh/map_individual_ponds_cbh.png",
   bg = "white")
 save_plot("figures/tlb/map_individual_ponds_tlb.png",
           ggplot(filter(ponds, site == "tlb")) +
-            geom_sf(aes(fill = as.factor(intersections)), colour = NA) +
+            geom_sf(#aes(fill = as.factor(n_years)), 
+              colour = NA, fill = "darkblue") +
             geom_sf_text(aes(label = id), size = 1) +
             facet_wrap(~year) +
             labs(fill = "n years w/\nintersections") +
@@ -39,10 +46,28 @@ save_plot("figures/tlb/map_individual_ponds_tlb.png",
             theme(panel.border = element_rect(color = "black", fill = NA)), 
           base_height = 12,
           bg = "white")
-  
 
-# Load unique pond timeseries (see pond_time_series_analysis.R)
-load("data/pond_polys/unique_intersections.Rda")
+# Generate time-series overview map
+save_plot("figures/cbh/pond_time_series_cbh.png",
+          ggplot(filter(pond_time_series_ids, site == "cbh")) +
+            geom_sf(aes(fill = as.factor(n_years)), 
+              colour = NA) +
+            geom_sf_text(aes(label = ts_id), size = 1)  +
+            labs(fill = "n years w/\nintersections") +
+            theme_map() +
+            theme(panel.border = element_rect(color = "black", fill = NA)), 
+          base_height = 12,
+          bg = "white")
+save_plot("figures/tlb/pond_time_series_tlb.png",
+          ggplot(filter(pond_time_series_ids, site == "tlb")) +
+            geom_sf(aes(fill = as.factor(n_years)), 
+                    colour = NA) +
+            geom_sf_text(aes(label = ts_id), size = 1)  +
+            labs(fill = "n years w/\nintersections") +
+            theme_map() +
+            theme(panel.border = element_rect(color = "black", fill = NA)), 
+          base_height = 12,
+          bg = "white")
 
 # Load raster data
 # Load rgb raster objects
@@ -50,19 +75,22 @@ norm_rasts <- list.files("data/drone_data",
                        pattern = "tif",
                        recursive = T,
                        full.names = T) %>%
-  .[grepl("norm",.)]
+  .[grepl("norm",.)] %>%
+  .[!grepl("cbh_2019\\.|tlb_2019_a|tlb_2019_b", .)]
 # Load dsm 
 dsm_rasts <- list.files("data/drone_data",
                          pattern = "tif",
                          recursive = T,
                          full.names = T) %>%
-  .[grepl("dsm",.)]
-# Load predictions 
+  .[grepl("dsm",.)] %>%
+  .[!grepl("cbh_2019\\.|tlb_2019_a|tlb_2019_b", .)]
+# Load predictions (not using all just size filtered data here!!!)
 preds_rasts <- list.files("data/drone_data",
                          pattern = "tif",
                          recursive = T,
                          full.names = T) %>%
-  .[grepl("preds_filtered_intersection",.)]
+  .[grepl("preds_filtered/",.)] %>%
+  .[!grepl("cbh_2019_preds|tlb_2019_a|tlb_2019_b", .)]
 
 # Write helper functions to plot pond time-series
 # pond_sf <- unique_ponds_cbh[1,]
@@ -88,6 +116,7 @@ plot_pond_rgb <- function(rgb_rast_file, pond_bounds, pond_sf){
              label = year,
              colour = "white",
              fontface = "bold",
+             size = 5,
              hjust = 0,
              vjust = 0.5) +
     scale_x_continuous(expand = c(0,0)) +
@@ -100,57 +129,14 @@ plot_pond_rgb <- function(rgb_rast_file, pond_bounds, pond_sf){
     pond_plot_rgb <- pond_plot_rgb +       
       geom_sf(data = pond_sf[grepl(year, pond_sf$year),], 
             colour = "white", 
-            size = 0.1,
+            size = 2,
             alpha = 0.5,
-            fill = NA) +
+            fill = NA,
+            linetype = "solid") +
     coord_sf(xlim = c(st_bbox(pond_bounds)[1],st_bbox(pond_bounds)[3]),
              ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4]))
   }
-  
-  # Add a scale bar if this is the last plot in the time-series
-  if(year == "2021"){
-    pond_plot_rgb <- pond_plot_rgb +       
-    annotate("rect",
-             xmin = ext(rgb_rast_crop)[1] + (ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) * 0.55,
-             ymin = ext(rgb_rast_crop)[3] + (ext(rgb_rast_crop)[4] - ext(rgb_rast_crop)[3]) * 0.05,
-             xmax = (ext(rgb_rast_crop)[1] + (ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) * 0.55) +
-               round((ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) / 5),
-             ymax = (ext(rgb_rast_crop)[3] + (ext(rgb_rast_crop)[4] - ext(rgb_rast_crop)[3]) * 0.05) +
-               round((ext(rgb_rast_crop)[4] - ext(rgb_rast_crop)[3]) / 10) * 0.25,
-             fill = "white",
-             colour = NA) +
-    annotate("text",
-             x =  (ext(rgb_rast_crop)[1] + (ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) * 0.55) +
-               round((ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) / 5) * 0.5,
-             y = ext(rgb_rast_crop)[3] + (ext(rgb_rast_crop)[4] - ext(rgb_rast_crop)[3]) * 0.1,
-             label = paste0(round(((ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) / 5)), " m"),
-             colour = "white",
-             fontface = "bold",
-             size = 3,
-             hjust = 0.5,
-             vjust = 0) +
-    annotate("text",
-             x =  (ext(rgb_rast_crop)[1] + (ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) * 0.55) +
-               round((ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) / 5) * 1.3,
-             y = ext(rgb_rast_crop)[3] + (ext(rgb_rast_crop)[4] - ext(rgb_rast_crop)[3]) * 0.075,
-             label = "↑",
-             colour = "white",
-             fontface = "bold",
-             size = 6,
-             hjust = 0.5,
-             vjust = 0) +
-    annotate("text",
-             x =  (ext(rgb_rast_crop)[1] + (ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) * 0.55) +
-               round((ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) / 5) * 1.7,
-             y = ext(rgb_rast_crop)[3] + (ext(rgb_rast_crop)[4] - ext(rgb_rast_crop)[3]) * 0.075,
-             label = "N",
-             colour = "white",
-             fontface = "bold",
-             size = 3,
-             hjust = 0.5,
-             vjust = 0)
-  }
-  
+ 
   # Return plot as ggplot object with year as title and adjusted borders
   return(pond_plot_rgb)
 }
@@ -162,11 +148,28 @@ plot_pond_dsm <- function(preds_file, dsm_file, pond_bounds, pond_sf){
   preds <- rast(preds_file)
   dsm <- rast(dsm_file)
   
-  # Crop rasters and mask, and standardise dsm
+  # Get site name
+  site_name <- gsub(".*/(cbh|tlb)/.*", "\\1", sources(preds))
+  
+  # Load all preds rasters for standardising the dsm
+  preds_all <- preds_rasts[grepl(site_name, preds_rasts)] %>% rast()
+  
+  # Crop rasters
   preds_crop <- crop(preds, pond_bounds) 
-  dsm_crop <- crop(dsm, pond_bounds) 
+  preds_all_crop <- crop(preds_all, pond_bounds)
+  dsm_crop <- crop(dsm, pond_bounds)  
+  
+  # Generate a single layer for preds_all
+  preds_all_crop <- sum(preds_all_crop, na.rm = T)
+  
+  # Calculate min value for area nevery covered by water
+  dsm_min <- mask(dsm_crop, preds_all_crop, inverse = T) %>%
+    global(., fun=quantile, probs = 0.02, na.rm = T) %>%
+    as.numeric()
+  
+  # Mask dsm for area covered by water in year only and standardise dsm
   dsm_crop <- mask(dsm_crop, preds_crop, inverse = T)
-  dsm_crop <- dsm_crop - as.numeric(global(dsm_crop, median, na.rm = T))
+  dsm_crop <- dsm_crop - dsm_min
   
   # Adjust levels of preds raster to allow for 0-1 alpha plotting
   preds_crop <- classify(preds_crop, matrix(c(NaN, 0, 1, 1), byrow = T, ncol = 2))
@@ -175,7 +178,9 @@ plot_pond_dsm <- function(preds_file, dsm_file, pond_bounds, pond_sf){
   dsm_plot <- ggplot() +
     geom_spatraster(data = dsm_crop)  +
     scale_fill_continuous_sequential(palette = "inferno", rev = F,
-                                     limits = c(-0.5, 0.5), oob = scales::squish,
+                                     limits = c(-0.1, 0.5), oob = scales::squish,
+                                     begin = 0.1,
+                                     end = 0.9,
                                      na.value = "transparent") +
     scale_x_continuous(expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0)) +
@@ -193,29 +198,210 @@ plot_pond_dsm <- function(preds_file, dsm_file, pond_bounds, pond_sf){
   
   # Add first pond_outline in time-series
   dsm_plot <- dsm_plot + 
-    geom_sf(data = filter(pond_sf, year != "2017") %>% slice(1), 
+    geom_sf(data = pond_sf %>% filter(year != 2017) %>%
+              arrange(year) %>% 
+              split(.$year) %>%
+              .[[1]], 
           colour = "white", 
-          size = 0.2,
+          size = 2,
           alpha = 1,
-          fill = NA) 
+          fill = NA) +
+    # constrain to pond bounds
+    coord_sf(xlim = c(st_bbox(pond_bounds)[1],st_bbox(pond_bounds)[3]),
+             ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4])) 
   
   # Return as ggplot object with no margins and a space holder title
   return(dsm_plot)
 }
 
-# Helper function to generate one composite plot for a given pond timeseries / combination
+# Helper function to generate legend and scale bar for rgb plots
+# Add a scale bar if this is the last plot in the time-series
+legend_rgb <- function(pond_bounds){
+  legend_rgb <- ggplot() +
+    coord_sf(xlim = c(pond_bounds[1],pond_bounds[2]),
+             ylim = c(pond_bounds[3],pond_bounds[4])) +
+    annotate("rect",
+             xmin = (pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.5) -
+               round((pond_bounds[2] - pond_bounds[1]) / 5),
+             xmax = (pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.5) +
+               round((pond_bounds[2] - pond_bounds[1]) / 5),
+             ymin = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.80,
+             ymax = (pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.80) +
+               round((pond_bounds[4] - pond_bounds[3]) / 10) * 0.25,
+             fill = "white",
+             colour = NA) +
+    annotate("text",
+             x =  (pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.5),
+             y = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.80 +
+               round((pond_bounds[4] - pond_bounds[3]) / 10) * 1,
+             label = paste0(round(((pond_bounds[2] - pond_bounds[1]) / 5)), " m"),
+             colour = "white",
+             size = 3,
+             hjust = 0.5,
+             vjust = 0) +
+    annotate("text",
+             x =  (pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.45),
+             y = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.25,
+             label = "↑",
+             colour = "white",
+             size = 9,
+             hjust = 0.5,
+             vjust = 0) +
+    annotate("text",
+             x =  (pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.55),
+             y = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.25,
+             label = "N",
+             fontface = "bold",
+             colour = "white",
+             size = 5,
+             hjust = 0.5,
+             vjust = 0) +
+    # annotate("segment",
+    #          x = pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.1,
+    #          xend = pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.18,
+    #          y = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.8,
+    #          yend = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.8,
+    #          colour = "white",
+    #          linewidth = 0.5,
+    #          linetype = "solid") +
+    # annotate("text",
+    #          x =  pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.5,
+    #          y = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.8,
+    #          label = "pond in given year",
+    #          colour = "white",
+    #          size = 3,
+    #          hjust = 0.5,
+    #          vjust = 0.5) +
+    theme_nothing() +
+    theme(plot.background = element_rect(fill = "black"),
+          panel.background = element_rect(fill = "black"))
+  
+  line <- ggplot() +
+    geom_line(aes(x = 1:15, y = 1:15, 
+                  group = 1,
+                  colour = "white")) +
+    scale_colour_manual(values = "white",
+                        labels = "pond in given year") +
+    guides(colour = guide_legend(
+      title = "",
+      title.position = "top",
+      title.hjust = 0.5,
+      title.vjust = 0.5,
+      keyheigt = unit(0.5 * 0.66, "in"),
+      keywidth = unit(0.25, "in")
+    )) +
+    theme(legend.position = "top",
+          legend.key = element_rect(fill = NA, color = NA),
+          legend.background = element_rect(fill = NA),
+          legend.title = element_text(colour = "white"),
+          legend.text = element_text(colour = "white"),
+          plot.background = element_rect(fill = "black"))
+  legend_rgb <- plot_grid(get_legend(line), legend_rgb, ncol = 1, rel_widths = c(0.5,1)) +
+    theme(panel.background = element_rect(fill = "black"))
+  
+  return(legend_rgb)
+}
+
+# Helper function to generate legend for dsm plots (standardised)
+legend_dsm <- function(pond_bounds){
+  # Generate mock data with legend
+  colour_map <- ggplot() +
+    geom_point(aes(x = 1:15, y = 1:15, fill = rep(c(-0.1, 0, 0.5), 5))) +
+    scale_colour_manual(values = "white",
+                        labels = "pond at start\nof time-series") +
+    scale_fill_continuous_sequential(palette = "inferno", rev = F,
+                                     limits = c(-0.1, 0.5), 
+                                     breaks = seq(-0.1,0.5,0.1),
+                                     oob = scales::squish,
+                                     begin = 0.1,
+                                     end = 0.9,
+                                     labels = c("-0.1", "0", "0.1", "0.2", "0.3", "0.4" , "0.5+")
+    ) +
+    guides(fill = guide_colourbar(
+      title = "relative elevation [m]",
+      title.position = "top",
+      title.hjust = 0.5,
+      title.vjust = 0.5,
+      frame.colour = "white",
+      barwidth = unit(1.5, "in")
+    )) +
+    theme(legend.position = "top",
+          legend.key = element_rect(fill = NA, color = NA),
+          legend.background = element_rect(fill = NA),
+          legend.title = element_text(colour = "white", size = 8),
+          legend.text = element_text(colour = "white", size = 7),
+          plot.background = element_rect(fill = "black"))
+  
+  line <- ggplot() +
+    geom_line(aes(x = 1:15, y = 1:15, 
+                  group = 1,
+                  colour = "white")) +
+    scale_colour_manual(values = "white",
+                        labels = "pond at start\nof time-series") +
+    guides(colour = guide_legend(
+      title = "",
+      title.position = "top",
+      title.hjust = 0.5,
+      title.vjust = 0.5,
+      keyheigt = unit(0.5 * 0.66, "in"),
+      keywidth = unit(0.25, "in")
+    )) +
+    theme(legend.position = "top",
+          legend.key = element_rect(fill = NA, color = NA),
+          legend.background = element_rect(fill = NA),
+          legend.title = element_text(colour = "white"),
+          legend.text = element_text(colour = "white"),
+          plot.background = element_rect(fill = "black"))
+  
+  box <- ggplot() +
+    geom_col(aes(x = 1:15, y = 1:15, 
+                  fill = "water")) +
+    scale_fill_manual(values = "#82C4F5",
+                        labels = "water") +
+    guides(fill = guide_legend(
+      title = "",
+      title.position = "top",
+      title.hjust = 0.5,
+      title.vjust = 0.5,
+      keyheigt = unit(0.25, "in"),
+      keywidth = unit(0.25, "in")
+    )) +
+    theme(legend.position = "top",
+          legend.key = element_rect(fill = NA, color = NA),
+          legend.background = element_rect(fill = NA),
+          legend.title = element_text(colour = "white"),
+          legend.text = element_text(colour = "white"),
+          plot.background = element_rect(fill = "black"))
+  
+  # Pull out legend
+  dsm_legend <- plot_grid(plot_grid(get_legend(line),
+                          get_legend(box), ncol = 1),
+                          get_legend(colour_map),
+                          ncol = 1)
+  
+  # Add to dummy grob
+  dsm_legend <- ggdraw(ggplot() +
+    coord_sf(xlim = c(st_bbox(pond_bounds)[1],st_bbox(pond_bounds)[3]),
+             ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4])) +
+      theme_nothing() +
+      theme(plot.background = element_rect("black"))) +
+    draw_plot(dsm_legend) +
+    theme(legend.title = element_text(size = 6))
+  
+  # Return legend
+  return(dsm_legend)
+}
+
+# Helper function to generate one composite plot for a given pond time series / combination
 composite_plot <- function(combination){
   # get site name
   site_name <- pull(combination, site)
   
   # get pond polyogns 
-  ponds_combination <- ponds %>% filter(id %in% unlist(combination$ids_intersecting))
+  ponds_combination <- ponds %>% filter(id %in% unlist(combination$combination))
   
-  # add 5 m buffer around first occurance in the time-series ignoring 
-  # 2017, crop to site area to avoid over spill, cast to ext object
-  pond_bounds <- ponds_combination %>%
-    filter(year != "2017") %>%
-    slice(1) %>% 
+  # add 5 m buffer around mean occurrence of pond and convert to ext object
+  pond_bounds <- combination %>%
     st_buffer(5, endCapStyle = "SQUARE") %>% 
     st_crop(st_bbox(rast(norm_rasts[grepl(site_name, norm_rasts)][1]))) %>%
     ext()
@@ -232,136 +418,48 @@ composite_plot <- function(combination){
                     pond_bounds = pond_bounds, pond_sf = ponds_combination)
   
   # Combine plots into a single list
-  plot_list <- c(rgb_plots, dsm_plots)
+  plot_list <- c(rgb_plots, 
+                 list(legend_rgb(pond_bounds)), 
+                 dsm_plots, 
+                 list(legend_dsm(pond_bounds))
+                 )
   
   # Determine ratio for plotting
   length_x <- pond_bounds[2] - pond_bounds[1]
   length_y <- pond_bounds[4] - pond_bounds[3]
+  asp_ratio <- length_x / length_y
+  if(asp_ratio < 0.9) asp_ratio <- 0.9
   
   # Prepare output file name
-  output_file <- paste0("figures/", site_name, "/individual_ponds/", combination$combination_id, ".png")
+  output_file <- paste0("figures/", site_name, "/individual_ponds/", combination$ts_id, ".png")
   
   # Generate grid from list and save plot
   plot_grid(plotlist = plot_list,
             nrow = 2,
-            ncol = length(norm_rasts_site)) %>%
+            ncol = length(norm_rasts_site) +1 ) %>%
     save_plot(output_file,
               .,
               nrow = 2,
-              ncol = length(norm_rasts_site),
-              base_height = 1,
-              base_asp = length_x / length_y,
-              bg = "white")
+              ncol = length(norm_rasts_site) + 1,
+              base_height = 2,
+              base_asp = asp_ratio,
+              bg = "black")
   
-  # Retrun nothing
+  # Return nothing
   return(NULL)
 }
 
-# Test: composite_plot(unique_intersections[1,])
+# Test: composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_001"))
+
+# Remove previous plots (if they exist)
+list.files("figures/cbh/individual_ponds/", full.names = T) %>% file.remove()
+list.files("figures/tlb/individual_ponds/", full.names = T) %>% file.remove()
 
 ## Generate plots for all unique ponds
-unique_intersections %>%
-  split(., .$combination_id) %>%
+pond_time_series_ids %>%
+  split(., .$ts_id) %>%
   pblapply(., composite_plot, cl = 31)
 
-# Plot scales
-(plot_scales <- ggplot() +
-    geom_point(aes(x = 1:15, y = 1:15, fill = rep(c(-0.5,0, 0.5), 5))) +
-    geom_line(aes(x = 1:15, y = 1:15, 
-                  group = 1,
-                  colour = "white")) +
-    scale_colour_manual(values = "white",
-                        labels = "pond in 2014") +
-    scale_fill_continuous_sequential(palette = "inferno", rev = F,
-                                     limits = c(-0.5, 0.5), oob = scales::squish,
-                                     labels = c("-0.5", "", "0", "", "0.5")) +
-    guides(fill = guide_colourbar(
-      title = "rel. elevation [m]",
-      title.position = "top",
-      title.hjust = 0.5,
-      title.vjust = 0.5,
-      frame.colour = "white",
-      barwidth = unit(1.5, "in")
-    ),
-    colour = guide_legend(
-      title = "",
-      title.position = "top",
-      title.hjust = 0.5,
-      title.vjust = 0.5,
-      keyheigt = unit(0.5 * 0.66, "in"),
-      keywidth = unit(0.5, "in")
-    )) +
-    theme(legend.position = "bottom",
-          legend.key = element_rect(fill = NA, color = NA),
-          legend.background = element_rect(fill = NA),
-          legend.title = element_text(colour = "white",
-                                      size = 15),
-          legend.text = element_text(colour = "white",
-                                     size = 15)))
-ggdraw(cowplot::get_legend(plot_scales)) %>%
-  save_plot("figures/cbh/individual_ponds/legend.png",
-            .,
-            base_height = 2,
-            base_asp = 2.5)
-ggdraw(cowplot::get_legend(plot_scales)) %>%
-  save_plot("figures/tlb/individual_ponds/legend.png",
-            .,
-            base_height = 2,
-            base_asp = 2.5)
 
 
 
-# Check out number of ponds
-ponds %>%
-  st_drop_geometry() %>%
-  group_by(site, year) %>%
-  tally()
-
-# Check for ponds disappearing between 2014 and 2021
-ponds %>%
-  filter(site =="cbh", year == "2014_byte") %>%
-  st_intersects(filter(ponds, site == "cbh", year == "2021")) %>%
-  map(function(x) length(x) == 0) %>%
-  unlist() %>%
-  sum()
-ponds %>%
-  filter(site =="tlb", year == "2014") %>%
-  st_intersects(filter(ponds, site == "tlb", year == "2021")) %>%
-  map(function(x) length(x) == 0) %>%
-  unlist() %>%
-  sum()
-# 
-# Check for ponds appearing between 2014 and 2021
-ponds %>%
-  filter(site =="cbh", year == "2021") %>%
-  st_intersects(filter(ponds, site == "cbh", year == "2014_byte")) %>%
-  map(function(x) length(x) == 0) %>%
-  unlist() %>%
-  sum()
-ponds %>%
-  filter(site =="tlb", year == "2021") %>%
-  st_intersects(filter(ponds, site == "tlb", year == "2014")) %>%
-  map(function(x) length(x) == 0) %>%
-  unlist() %>%
-  sum()
-
-# ggplot() + 
-#   geom_sf(data = filter(ponds, site =="cbh", year == "2014_byte"), fill = "blue", colour = NA) +
-#   geom_sf(data = filter(ponds, site =="cbh", year == "2021"), fill = "red", colour = NA) +
-#   theme_map()
-
-# Filter ponds that occur in 2014 and 2021
-unique_ponds_cbh <- filter(ponds, 
-                           site =="cbh", 
-                           year == "2021" | year == "2014_byte") %>%
-  mutate(., intersects_with = st_intersects(., .)) %>%
-  mutate(unique = sapply(intersects_with, function(x) length(x) == 0)) %>%
-  filter(unique | year == "2014_byte") %>%
-  select(-intersects_with, -unique)
-unique_ponds_tlb <- filter(ponds, 
-                           site =="tlb", 
-                           year == "2021" | year == "2014") %>%
-  mutate(., intersects_with = st_intersects(., .)) %>%
-  mutate(unique = sapply(intersects_with, function(x) length(x) == 0)) %>%
-  filter(unique | year == "2014") %>%
-  select(-intersects_with, -unique)
