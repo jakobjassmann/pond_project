@@ -1,14 +1,17 @@
-# Calculate RCC and BCC (GCC if needed) rasters for all files
+# Calculate BCC and GCC rasters for all files
 # Jakob J. Assmann jakob.assmann@uzh.ch 24 January 2024
 
 library(terra)
 library(dplyr)
 library(pbapply)
 
-# Create directories for normalised bcc
+# Create directories for normalised bcc and gcc
 dir.create("data/drone_data/cbh/bcc/")
 dir.create("data/drone_data/tlb/bcc/")
 dir.create("data/drone_data/rdg/bcc/")
+dir.create("data/drone_data/cbh/gcc/")
+dir.create("data/drone_data/tlb/gcc/")
+dir.create("data/drone_data/rdg/gcc/")
 # Create directories for raw bcc
 dir.create("data/drone_data/cbh/bcc_raw/")
 dir.create("data/drone_data/tlb/bcc_raw/")
@@ -24,21 +27,30 @@ pblapply(raster_files, function(rast_file){
   norm_raster <- rast(rast_file)
   names(norm_raster) <- c("R", "G", "B", "alpha")
   
-  # Calculate rcc (gcc) and bcc
-  #rcc <- norm_raster[["R"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
-  #names(rcc) <- "rcc"
-  #gcc <- norm_raster[["G"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
-  #names(gcc) <- "gcc"
-  
+  # Calculate bcc
   bcc <- norm_raster[["B"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
   names(bcc) <- "bcc"
   
-  # Write out files
-  #writeRaster(rcc, gsub("norm", "rcc", rast_file), overwrite = T)
   writeRaster(bcc, gsub("norm", "bcc", rast_file), overwrite = T)
   
   return(NULL)
 }, cl = 7)
+
+# Calculate gcc rasters
+pblapply(raster_files, function(rast_file){
+  # Load raster and set name
+  norm_raster <- rast(rast_file)
+  names(norm_raster) <- c("R", "G", "B", "alpha")
+  
+  # Calculate gcc
+  gcc <- norm_raster[["G"]] / (norm_raster[["R"]] + norm_raster[["G"]] + norm_raster[["B"]])
+  names(gcc) <- "gcc"
+  
+  # Write out file
+  writeRaster(gcc, gsub("norm", "gcc", rast_file), overwrite = T)
+  
+  return(NULL)
+}, cl = 31)
 
 # Get list of raw raster to calcualte bcc for
 raster_files <- list.files("data/drone_data", pattern = ".tif", full.names = T, recursive = T) %>%

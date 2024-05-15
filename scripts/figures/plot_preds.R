@@ -7,20 +7,20 @@ library(cowplot)
 library(pbapply)
 
 # get rasters
-norm_files <- list.files("data/drone_time_series/", pattern = ".tif$", recursive = T, full.names = T) %>%
+norm_files <- list.files("data/drone_data/", pattern = ".tif$", recursive = T, full.names = T) %>%
   .[grepl("/norm/",.)]
-preds_files <- list.files("data/drone_time_series/", pattern = ".tif$", recursive = T, full.names = T) %>%
-  .[grepl("/preds_thresh/",.)]
+preds_files <- list.files("data/drone_data/", pattern = ".tif$", recursive = T, full.names = T) %>%
+  .[grepl("/preds_filtered/",.)]
 
 # Filter by site
 preds_cbh <- preds_files[grepl("cbh", preds_files)]
 preds_tlb <- preds_files[grepl("tlb", preds_files)]
 preds_rdg <- preds_files[grepl("rdg", preds_files)]
 
-# Helper function to load categorical preds raster
+# # Helper function to load categorical preds raster
 cat_rast <- function(rast_file){
   rast_object <- rast(rast_file)
-  levels(rast_object) <- data.frame(id = 0:1, class = c("other","water"))
+  levels(rast_object) <- data.frame(id = 1, class = "water")
   return(rast_object)
 }
 # Helper funciton to plot predictions and bcc
@@ -34,7 +34,7 @@ plot_preds <- function(preds_file){
     ggplot() +
       geom_spatraster_rgb(data = rast(norm_file), max_col_value = 65535) + 
       geom_spatraster(data = cat_rast(preds_file)) +
-      scale_fill_manual(values = c("NA", "magenta"), na.value = "transparent") +
+      scale_fill_manual(values = "magenta", na.value = "transparent") +
       theme_nothing(),
     # ggplot() +
     #   geom_spatraster(data = cat_rast(preds_file)) +

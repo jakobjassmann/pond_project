@@ -152,7 +152,7 @@ ggplot(training) +
   theme_cowplot()
 # Loks better but not great either 
 
-# Site-year specific threhold
+# Site-year specific threshold
 (bcc_norm_with_thresh_plot <- ggplot(training %>% mutate(site_year = paste0(site,"_", year))) +
   geom_density(aes(x= bcc, colour = class)) +
   geom_vline(aes(xintercept = threshold), data = best_thresh_site_year) +

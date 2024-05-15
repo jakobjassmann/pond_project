@@ -9,7 +9,7 @@ library(ggplot2)
 library(cowplot)
 
 # Load mock pond time-series
-ponds_reference <- read_sf("data/pond_polygons/mock_time-series.gpkg")
+ponds_reference <- read_sf("data/pond_polys/mock_time-series.gpkg")
 
 # Remove annototations for testing
 ponds <- select(ponds_reference, -pond_id) 
@@ -59,7 +59,7 @@ check_intersection <- function(id_a, id_b, ponds) {
     }
 }
 
-# Get unqiue years in time-series and sort ascending
+# Get uniqiue years in time-series and sort ascending
 years <- unique(ponds$year) %>% sort()
 
 # Function to track ponds from any given starting year
@@ -281,4 +281,4 @@ time_series %>%
         return(NULL)
     })
 
-# This algorithm seems to work well! :)
+# Expecting 14 pond time-series -> the algorithm seems to work well! :)
