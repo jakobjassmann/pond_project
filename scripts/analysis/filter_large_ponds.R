@@ -105,6 +105,7 @@ pond_polys_filtered_size <- pond_polys %>% filter(area >= set_units(1, "m^2"))
 
 # Save filtered polygons to file
 write_sf(pond_polys_filtered_size, "data/pond_polys/pond_polys_filtered_size.gpkg")
+# pond_polys_filtered_size <- read_sf("data/pond_polys/pond_polys_filtered_size.gpkg")
 
 # # Remove erroneous rdg data outside the area of interest
 # rdg_aoi <- read_sf("data/drone_time_series/rdg_timeseries/rdg_study_aoi.shp")
@@ -189,9 +190,9 @@ preds_rasters_meta <- tibble(file = preds_rasters) %>%
   # Remove 2017 as this is an outlier year
   filter(year != 2017) %>%
   # Exclude rdg as time-series is empty except for 2017
-  filter(site != "rdg") 
+  filter(site != "rdg")
 
-# Generate cross time-series composites, generate polygons and assign time-series ids
+# Generate cross time-series composite polygons and assign ids
 pond_time_series_ids <- preds_rasters_meta %>%
   split(.$site) %>%
   map(function(meta_sub){
@@ -211,18 +212,97 @@ pond_time_series_ids <- preds_rasters_meta %>%
       arrange(min_y, min_y) %>%
       select(-min_y, -min_x) %>%
       # Add id column
-      mutate(ts_id = paste0(unique(.$site), "_", formatC(1:nrow(.), width = 3, flag = "0")))
+      mutate(ts_id = paste0(unique(.$site), "_",
+                            formatC(1:nrow(.), width = 3, flag = "0")))
   }) %>%
-    bind_rows()
+  bind_rows() %>% 
+  # Remove max column (value of max composite raster)
+  select(-max)
+
+# Warning: terra sometimes does not recognise touching geometries
+# Let's check!
+
+# Get self-intersections
+pond_time_series_ids <- pond_time_series_ids %>%
+  mutate(., intersects = st_intersects(.) %>% map(function(x) x))
+
+# Calculate number of intersections per polygon
+pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>% 
+  map(function(x) length(x)) %>% unlist()
+
+# Calculate number of intersections large than one
+sum(pond_time_series_ids$n_intersects > 1) 
+# The problem is indeed the case for 184 of the identified ponds.
+
+# Split tibble and treat ponds with intersections separately
+pond_time_series_ids_unique <- pond_time_series_ids %>%
+  filter(n_intersects == 1) %>%
+  select(-intersects, n_intersects)
+pond_time_series_ids_inter <- filter(pond_time_series_ids,
+                                     n_intersects > 1)
+
+# Sort intersections
+pond_time_series_ids_inter$intersects <- pond_time_series_ids_inter$intersects %>%
+  map(sort)
+
+# Find unique ones (excluding contained of sets)
+unique_interects <- unique(pond_time_series_ids_inter$intersects)
+
+# For each unique combination, check how often it is contained in 
+# all other combinations, including itself then keep only those
+# that are truely uniuqe
+unique_interects[
+  sapply(unique_interects, function(x) {
+    n_contained <- sapply(unique_interects, function(y) all(x %in% y)) %>%
+    sum()
+    n_contained > 1
+    })] <- NULL 
+
+# Merge remaining contained combinations
+pond_time_series_ids_inter <- map(unique_interects, function(x) {
+  summarise(pond_time_series_ids[unlist(x),], 
+  area = sum(area),
+  site = unique(site),
+  year = unique(year),
+  ts_id = ts_id[1])
+}) %>% bind_rows()
+
+# Re-merge with unique polygons
+pond_time_series_ids <- bind_rows(pond_time_series_ids_unique,
+  pond_time_series_ids_inter) %>%
+  arrange(ts_id)
+
+# Double check: 
+# Get self-intersections
+pond_time_series_ids <- pond_time_series_ids %>%
+  mutate(., intersects = st_intersects(.) %>% map(function(x) x))
+
+# Calculate number of intersections per polygon
+pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>% 
+  map(function(x) length(x)) %>% unlist()
+
+# Calculate number of intersections large than one
+sum(pond_time_series_ids$n_intersects > 1) 
+# 2 remain!
+
+# merge last two remaining polygons 
+pond_time_series_ids <- bind_rows(
+  summarise(pond_time_series_ids[which(pond_time_series_ids$n_intersects > 1),], 
+    area = sum(area),
+    site = unique(site),
+    year = unique(year),
+    ts_id = ts_id[1]),
+  pond_time_series_ids[which(pond_time_series_ids$n_intersects == 1),]) %>%
+  arrange(ts_id)
 
 # Quick visual check
 pond_time_series_ids %>%
   split(.$site) %>%
-  map(function(x){
-    ggplot(x) +
-      geom_sf(colour = NA, fill = "lightblue") +
-      geom_sf_text(aes(label = ts_id), size = 1) +
-      theme_map()})
+  map(function(x) {
+                   ggplot(x) +
+                     geom_sf(fill = "lightblue", colour = NA) +
+                     geom_sf_text(aes(label = ts_id), size = 1) +
+                     theme_map()})
 
 ## Prepare other yearly ponds for matching
 
@@ -305,7 +385,9 @@ pond_time_series_ids %>%
   st_drop_geometry() %>%
   group_by(site) %>%
   tally()
-ggplot(pond_time_series_ids) + geom_histogram(aes(x = n_years), binwidth = 1)
+ggplot(pond_time_series_ids) + 
+  geom_histogram(aes(x = n_years), binwidth = 1) + 
+  facet_wrap(~site)
 
 # Re-assign time-series ids going from 1:n(ids)
 # roughly arrange top-left to bottom-right corner
@@ -324,6 +406,7 @@ pond_time_series_ids <- pond_time_series_ids %>%
 # Write out files
 save(pond_time_series_ids, file = "data/pond_polys/pond_time_series.Rda")
 write_sf(ponds_for_time_series, "data/pond_polys/ponds_for_time_series.gpkg")
+
 # Time-series for GIS use
 write_sf(select(pond_time_series_ids, ts_id, site, year, area, geometry), "data/pond_polys/pond_time_series.gpkg")
 
