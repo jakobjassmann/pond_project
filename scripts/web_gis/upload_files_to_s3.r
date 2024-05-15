@@ -9,6 +9,7 @@
 library(tidyverse)
 library(aws.s3)
 library(pbapply)
+library(parallel)
 
 # Create new bucked (if needed)
 # put_bucket("pondproject")
@@ -28,15 +29,19 @@ map(files_to_upload, function(x) {
 put_object("data/web_data/pond_time_series.geojson",
   bucket = "pondproject")
 
-# Upload map tiles
+# Upload map tiles using for parallel uploads
 files_to_upload <- list.files("data/web_data/tiles", recursive = T)
 files_to_upload <- files_to_upload[!grepl("googlemaps|leaflet|openlayers|stage", files_to_upload)]
+# Temp modifier to filter certain years: files_to_upload <- files_to_upload[grepl("2016|2021", files_to_upload)]
+cl <- makeCluster(4)
+clusterEvalQ(cl, library(aws.s3))
 pblapply(files_to_upload, function(x) {
     put_object(paste0("data/web_data/tiles/", x),
         bucket = "pondproject",
         object = x)
         return(NULL)
-})
+}, cl = cl)
+stopCluster(cl)
 
 # Upload leaflet
 put_object("docs/index.html",
