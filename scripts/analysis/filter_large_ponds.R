@@ -187,8 +187,8 @@ preds_rasters_meta <- tibble(file = preds_rasters) %>%
   filter(!(site_year %in% c("cbh_2019", "tlb_2019_a", "tlb_2019_b"))) %>%
   # Arrange by site and year
   arrange(site, year) %>%
-  # Remove 2017 as this is an outlier year
-  filter(year != 2017) %>%
+  # # Remove 2017 as this is an outlier year
+  # filter(year != 2017) %>%
   # Exclude rdg as time-series is empty except for 2017
   filter(site != "rdg")
 
@@ -196,13 +196,17 @@ preds_rasters_meta <- tibble(file = preds_rasters) %>%
 pond_time_series_ids <- preds_rasters_meta %>%
   split(.$site) %>%
   map(function(meta_sub){
-    cat("Generating max value composite for:", unique(meta_sub$site), "\n")
+    cat("Generating composite for:", unique(meta_sub$site), "\n")
     # Load rasters
     meta_sub %>% 
       pull(file) %>% 
       rast() %>% 
-      # Max value composite (0,1 rasters)
-      app(., max) %>%
+      # # Max value composite (0,1 rasters)
+      # app(., max) %>%
+      # Get sum of overlaps
+      app(., sum) %>%
+      # Select only those with at least three occurances of water
+      app(., function(x) x >= 3) %>%
       # Get polygons using helper function
       get_pond_polys(., site = unique(meta_sub$site)) %>%
       # Keep only ponds larger than 1 m2
@@ -217,7 +221,7 @@ pond_time_series_ids <- preds_rasters_meta %>%
   }) %>%
   bind_rows() %>% 
   # Remove max column (value of max composite raster)
-  select(-max)
+  select(-lyr.1)
 
 # Warning: terra sometimes does not recognise touching geometries
 # Let's check!
@@ -232,7 +236,7 @@ pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>%
 
 # Calculate number of intersections large than one
 sum(pond_time_series_ids$n_intersects > 1) 
-# The problem is indeed the case for 184 of the identified ponds.
+# The problem is indeed the case for 94 of the identified ponds.
 
 # Split tibble and treat ponds with intersections separately
 pond_time_series_ids_unique <- pond_time_series_ids %>%
@@ -283,17 +287,26 @@ pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>%
 
 # Calculate number of intersections large than one
 sum(pond_time_series_ids$n_intersects > 1) 
-# 2 remain!
-
-# merge last two remaining polygons 
+# 4 remain!
+pond_time_series_ids[which(pond_time_series_ids$n_intersects > 1),]
+# merge last two remaining polygons manually
 pond_time_series_ids <- bind_rows(
-  summarise(pond_time_series_ids[which(pond_time_series_ids$n_intersects > 1),], 
+  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_177", "cbh_186")), 
+    area = sum(area),
+    site = unique(site),
+    year = unique(year),
+    ts_id = ts_id[1]),
+  summarise(filter(pond_time_series_ids, ts_id %in% c("tlb_067", "tlb_068")), 
     area = sum(area),
     site = unique(site),
     year = unique(year),
     ts_id = ts_id[1]),
   pond_time_series_ids[which(pond_time_series_ids$n_intersects == 1),]) %>%
   arrange(ts_id)
+
+# Clean up colums
+pond_time_series_ids <- select(pond_time_series_ids,
+ -n_intersects, -intersects)
 
 # Quick visual check
 pond_time_series_ids %>%
@@ -408,7 +421,13 @@ save(pond_time_series_ids, file = "data/pond_polys/pond_time_series.Rda")
 write_sf(ponds_for_time_series, "data/pond_polys/ponds_for_time_series.gpkg")
 
 # Time-series for GIS use
-write_sf(select(pond_time_series_ids, ts_id, site, year, area, geometry), "data/pond_polys/pond_time_series.gpkg")
+write_sf(select(pond_time_series_ids,
+                ts_id,
+                site,
+                year,
+                area,
+                geometry), 
+        "data/pond_polys/pond_time_series.gpkg")
 
 # Generate filtered rasters from time-series 
 ponds_for_time_series %>%
