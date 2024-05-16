@@ -17,13 +17,16 @@ library(parallel)
 # Upload pond time-series files
 files_to_upload <- c(list.files("figures/cbh/individual_ponds", full.names = T),
   list.files("figures/tlb/individual_ponds", full.names = T))
-map(files_to_upload, function(x) {
+cl <- makeCluster(4)
+clusterEvalQ(cl, library(aws.s3))
+pblapply(files_to_upload, function(x) {
     cat(x, "\n")
     put_object(x,
         bucket = "pondproject",
         object = gsub(".*/(.*\\.png)", "pond-time-series/\\1", x))
         return(NULL)
-})
+}, cl = cl)
+stopCluster(cl)
 
 # Upload geojson
 put_object("data/web_data/pond_time_series.geojson",
