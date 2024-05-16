@@ -175,20 +175,26 @@ list.files("data/drone_data/rdg/preds", full.names = T) %>%
 
 ### Identify pond id based on max extend across the time-series (excluding 2017)
 
+# Load preds files for filtered ponds
+preds_rasters_filtered <- c(
+  list.files("data/drone_data/cbh/preds_filtered", full.names = T),
+  list.files("data/drone_data/tlb/preds_filtered", full.names = T),
+  list.files("data/drone_data/rdg/preds_filtered", full.names = T))
+
 ## Calculate max area composites excluding 2017
 
 # Prepare prediction raster meta data
-preds_rasters_meta <- tibble(file = preds_rasters) %>%
+preds_rasters_meta <- tibble(file = preds_rasters_filtered) %>%
   mutate(site = gsub(".*(cbh|rdg|tlb).*", "\\1", file),
-         year = gsub(".*_([0-9]{4})_.*", "\\1", file)) %>%
+         year = gsub(".*_([0-9]{4}.*)_preds.*", "\\1", file)) %>%
   mutate(site_year = paste0(site, "_", year)) %>%
   # for 2019, keep only the observation closest to the mean date of observation
   # These are cbh 2019_b and tlb 2019_c (23 July 2019)
   filter(!(site_year %in% c("cbh_2019", "tlb_2019_a", "tlb_2019_b"))) %>%
   # Arrange by site and year
   arrange(site, year) %>%
-  # # Remove 2017 as this is an outlier year
-  # filter(year != 2017) %>%
+  # Remove 2017 as this is an outlier year
+  filter(year != 2017) %>%
   # Exclude rdg as time-series is empty except for 2017
   filter(site != "rdg")
 
@@ -201,12 +207,8 @@ pond_time_series_ids <- preds_rasters_meta %>%
     meta_sub %>% 
       pull(file) %>% 
       rast() %>% 
-      # # Max value composite (0,1 rasters)
-      # app(., max) %>%
-      # Get sum of overlaps
-      app(., sum) %>%
-      # Select only those with at least three occurances of water
-      app(., function(x) x >= 3) %>%
+      # Composite rasters where wtare was detected in any one of the years
+      app(., any) %>%
       # Get polygons using helper function
       get_pond_polys(., site = unique(meta_sub$site)) %>%
       # Keep only ponds larger than 1 m2
@@ -221,7 +223,7 @@ pond_time_series_ids <- preds_rasters_meta %>%
   }) %>%
   bind_rows() %>% 
   # Remove max column (value of max composite raster)
-  select(-lyr.1)
+  select(-any)
 
 # Warning: terra sometimes does not recognise touching geometries
 # Let's check!
@@ -236,7 +238,7 @@ pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>%
 
 # Calculate number of intersections large than one
 sum(pond_time_series_ids$n_intersects > 1) 
-# The problem is indeed the case for 94 of the identified ponds.
+# The problem is indeed the case for 9 of the identified ponds.
 
 # Split tibble and treat ponds with intersections separately
 pond_time_series_ids_unique <- pond_time_series_ids %>%
@@ -287,26 +289,23 @@ pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>%
 
 # Calculate number of intersections large than one
 sum(pond_time_series_ids$n_intersects > 1) 
-# 4 remain!
+
+# 2 remain! look at those
 pond_time_series_ids[which(pond_time_series_ids$n_intersects > 1),]
-# merge last two remaining polygons manually
+
+# Manuall merge those
 pond_time_series_ids <- bind_rows(
-  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_177", "cbh_186")), 
-    area = sum(area),
-    site = unique(site),
-    year = unique(year),
-    ts_id = ts_id[1]),
-  summarise(filter(pond_time_series_ids, ts_id %in% c("tlb_067", "tlb_068")), 
-    area = sum(area),
-    site = unique(site),
-    year = unique(year),
-    ts_id = ts_id[1]),
+  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_631", "cbh_635")), 
+            area = sum(area),
+            site = unique(site),
+            year = unique(year),
+            ts_id = ts_id[1]),
   pond_time_series_ids[which(pond_time_series_ids$n_intersects == 1),]) %>%
   arrange(ts_id)
 
 # Clean up colums
 pond_time_series_ids <- select(pond_time_series_ids,
- -n_intersects, -intersects)
+                               -n_intersects, -intersects)
 
 # Quick visual check
 pond_time_series_ids %>%
@@ -316,6 +315,7 @@ pond_time_series_ids %>%
                      geom_sf(fill = "lightblue", colour = NA) +
                      geom_sf_text(aes(label = ts_id), size = 1) +
                      theme_map()})
+pond_time_series_ids %>% group_by(site) %>% st_drop_geometry() %>% tally()
 
 ## Prepare other yearly ponds for matching
 
@@ -413,7 +413,8 @@ pond_time_series_ids <- pond_time_series_ids %>%
       arrange(min_y, min_y) %>%
       select(-min_y, -min_x) %>%
       # Add id column
-      mutate(ts_id = paste0(unique(.$site), "_", formatC(1:nrow(.), width = 3, flag = "0")))
+      mutate(ts_id = paste0(unique(.$site), "_", 
+                            formatC(1:nrow(.), width = 3, flag = "0")))
   }) %>% bind_rows()
     
 # Write out files
