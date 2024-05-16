@@ -1,4 +1,5 @@
-## Analysis of ponds dynamicism - bank degradation etc. 
+# Pond Time-Series Analysis (area change, thermokarst, veg incursion)
+# Jakob J. Assmann jakob.assmann@uzh.ch Apirl 2024
 
 # Dependencies
 library(terra)
