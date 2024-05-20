@@ -6,76 +6,166 @@ library(terra)
 library(ggplot2)
 library(tidyterra)
 library(cowplot)
+library(sf)
 library(pbapply)
 
 # get rasters files
 norm_files <- list.files("data/drone_data/", pattern = ".tif$", recursive = T, full.names = T) %>%
   .[grepl("/norm/",.)] %>%
-  .[!(grepl("rdg_2016", .) | grepl("rdg_2019_b", .))]
-rgb_files <- list.files("data/drone_data/", pattern = ".tif$", recursive = T, full.names = T) %>%
-  .[grepl("/rgb/",.)] %>%
-  .[!(grepl("cbh_2014\\.tif", .))] %>%
-  .[!(grepl("rdg_2016", .) | grepl("rdg_2019_b", .))]
+  .[!(grepl("rdg_2016", .) | grepl("rdg_2019_b", .))] %>%
+  .[!grepl("cbh_2019\\.|tlb_2019_a|tlb_2019_b", .)]
+preds_files <- list.files("data/drone_data/", pattern = ".tif$", recursive = T, full.names = T) %>%
+  .[grepl("/preds_filtered/",.)] %>%
+  .[!grepl("cbh_2019\\.|tlb_2019_a|tlb_2019_b", .)]
 
 # Helper function to plot rasters
-plot_raster <- function(rast_file, max_val){
-  # cat(rast_file, "\n")
-  # rast_file <- norm_files[1]
-  ggplot() +
-    geom_spatraster_rgb(data = rast(rast_file), max_col_value = max_val) +
-    ggtitle(rast_file %>% 
-      gsub(".*([0-9]{4}.*)\\.tif", "\\1", .) %>%
-      gsub("2014_byte", "2014", .)
-    ) +
-    theme_nothing() +
-    theme(plot.title = element_text(vjust = 0.5, size = 25))
-    # theme(panel.border = element_rect(colour = "grey20", fill=NA))
+plot_raster <- function(rast_file,
+                        max_val = 65535,
+                        add_scale = FALSE,
+                        add_preds = TRUE){
+  cat(rast_file, "\n")
+
+  # Get aoi outline
+  aoi_geom <- read_sf(paste0("data/drone_data/",
+                             gsub(".*(rdg|cbh|tlb).*", "\\1", rast_file),
+                             "/",
+                             gsub(".*(rdg|cbh|tlb).*", "\\1", rast_file),
+                             "_study_aoi.shp"))
+
+  # Check whether an empty date string was supplied as a file argument
+  # If yes create an empty plot with the year
+  if(rast_file %in% c("rdg_2015", "rdg_2016",
+                      "cbh_2015",
+                      "tlb_2015")) {
+    rast_plot <-  ggplot() +
+      geom_spatraster(data = gsub(".*(rdg|cbh|tlb).*", "\\1", rast_file) %>%
+                        grepl(., norm_files) %>%
+                        norm_files[.] %>% 
+                        .[1] %>%
+                        rast() %>% 
+                        .[[1]],
+                      fill = "black") +
+      geom_sf(data = aoi_geom,
+               colour = "black",
+               fill = "black",
+               linewidth = 2) +
+      annotate("text",
+               x = -Inf,
+               y = - Inf, 
+               label = rast_file %>% 
+                 gsub(".*([0-9]{4}).*", "\\1", .),
+               hjust = -0.25,
+               vjust = -0.75,
+               size = 18 /.pt,
+               colour = "grey") +
+               theme_nothing()
+    return(rast_plot)
+  }
+
+  # Set site colour
+  site_colour <- c(
+    "#FFE700",
+    "#FF369D",
+    "#19CEE6")[c(grepl("rdg", rast_file),
+                 grepl("cbh", rast_file), 
+                grepl("tlb", rast_file))]
+  # Base plot of norm raster
+  norm_rast <- rast(rast_file)
+  if(grepl("rdg", rast_file)) {
+    norm_rast[norm_rast[[4]] == 0 ] <- NA
+  }
+  rast_plot <- ggplot() +
+    geom_spatraster_rgb(data = norm_rast,
+                        max_col_value = max_val,
+                        alpha = 1) +
+    geom_sf(data = aoi_geom,
+            colour = site_colour,
+            fill = NA,
+            linewidth = 2) +
+    theme_nothing()
+
+  # Add predicitons if requested
+  if(add_preds){
+    pred_file <- preds_files[grepl(gsub(".*/(.*)\\.tif", "\\1", rast_file), preds_files)]
+    pred_rast <- as.factor(rast(pred_file))
+    if(!(length(pred_file) == 0 | levels(pred_rast)[[1]][1, 2] == "0")) {
+      rast_plot <- rast_plot +
+        geom_spatraster(data = pred_rast) +
+        scale_fill_manual(values = "#00C4F5",
+                          na.value = "transparent")
+    }
+  }
+
+  # Add scale bar if requested
+  if(add_scale){
+    rast_ext <- ext(rast(rast_file))
+    rast_dims_xy <- c(rast_ext[2] - rast_ext[1], rast_ext[4] - rast_ext[3])
+    rast_plot <- rast_plot +
+      annotate("segment",
+        x = rast_ext[1] + rast_dims_xy[1] * 0.1,
+        xend = rast_ext[1] + rast_dims_xy[1] * 0.1 + 100,
+        y = rast_ext[3] + rast_dims_xy[2] * 0.1,
+        yend = rast_ext[3] + rast_dims_xy[2]  * 0.1,
+        linewidth = 3,
+        colour = "white"
+    ) + 
+    annotate("text",
+             x = rast_ext[1] + rast_dims_xy[1] * 0.1 + (100 / 2),
+             y = rast_ext[3] + rast_dims_xy[2]  * 0.2,
+             colour = "white",
+             size = 14/.pt,
+             label = "100 m")
+  }
+
+  # Add year
+  rast_plot <- rast_plot  +
+    annotate("text",
+      x = -Inf,
+      y = - Inf, 
+      label = rast_file %>%
+        gsub(".*([0-9]{4}).*\\.tif", "\\1", .),
+      hjust = -0.25,
+      vjust = -0.75,
+      size = 18 / .pt,
+      colour = "white"
+    )
+  # Return plot
+  return(rast_plot)
 }
-#plot_raster(norm_files[1], max_val = 65535)
-# Plot all rgb rasters
-# pblapply(rgb_files, plot_raster, max_val = 255) %>%
-#  plot_grid(plotlist = .) %>%
-#  save_plot("figures/all_rgb_rasters.png", plot = ., bg = "black",
-#            base_height = 12, base_asp = 16/9)
 
+#plot_raster(norm_files %>% .[grepl("rdg_2014", .)])
+#plot_raster("rdg_2015")
 
-# Plot all norm rasters
-# pblapply(norm_files, plot_raster, max_val = 65535) %>%
-#  plot_grid(plotlist = .) %>%
-#  save_plot("figures/all_norm_rasters.png", plot = ., bg = "black",
-#            base_height = 12, base_asp = 16/9)
-
-## Plot CBH time-series
-cbh_files <- norm_files %>%
-  .[grepl("cbh", .)] 
-cbh_plots <- cbh_files %>%
-  pblapply(., plot_raster, max_val = 65535)
-# Add scale bar to last plot
-cbh_ext <- ext(rast(norm_files %>% .[grepl("cbh", .)] %>% .[1]))
-cbh_width <- cbh_ext[2] - cbh_ext[1]
-cbh_height <- cbh_ext[4] - cbh_ext[3]
-cbh_plots[[8]] <- cbh_plots[[8]] +
-  annotate("segment",
-    x = cbh_ext[1] + cbh_width * 0.1, 
-    xend = cbh_ext[1] + cbh_width * 0.1 + 100,
-    y = cbh_ext[3] + cbh_height * 0.1,
-    yend = cbh_ext[3] + cbh_height * 0.1,
-    linewidth = 3,
-    colour = "white"
-  ) + 
-  annotate("text",
-  x = cbh_ext[1] + cbh_width * 0.1 + (100 / 2) ,
-  y= cbh_ext[3] + cbh_height * 0.2,,
-  colour = "white",
-  size = 8,
-  label = "100 m")
-plot_grid(
-  plotlist = cbh_plots,
-  nrow = 2,
-  ncol = 4
-) %>%
-  save_plot("figures/cbh/cbh_norm_timeseries.png", .,
-    nrow = 2,
-    ncol = 4,
-    base_asp = cbh_width / cbh_height,
-  bg = "white")
+rast_plots <- list(norm_files %>% .[grepl("rdg_2014", .)],
+                   "rdg_2016",
+                   norm_files %>% .[grepl("rdg_2018", .)],
+                   norm_files %>% .[grepl("rdg_2020", .)],
+                   "rdg_2015",
+                   norm_files %>% .[grepl("rdg_2017", .)],
+                   norm_files %>% .[grepl("rdg_2019", .)],
+                   norm_files %>% .[grepl("rdg_2021", .)],
+                   norm_files %>% .[grepl("cbh_2014", .)],
+                   norm_files %>% .[grepl("cbh_2016", .)],
+                   norm_files %>% .[grepl("cbh_2018", .)],
+                   norm_files %>% .[grepl("cbh_2020", .)],
+                   "cbh_2015",
+                   norm_files %>% .[grepl("cbh_2017", .)],
+                   norm_files %>% .[grepl("cbh_2019", .)],
+                   norm_files %>% .[grepl("cbh_2021", .)],
+                   norm_files %>% .[grepl("tlb_2014", .)],
+                   norm_files %>% .[grepl("tlb_2016", .)],
+                   norm_files %>% .[grepl("tlb_2018", .)],
+                   norm_files %>% .[grepl("tlb_2020", .)],
+                   "tlb_2015",
+                   norm_files %>% .[grepl("tlb_2017", .)],
+                   norm_files %>% .[grepl("tlb_2019", .)],
+                   norm_files %>% .[grepl("tlb_2021", .)]) %>%
+                   map(plot_raster)
+plot_grid(plotlist = rast_plots,
+          ncol = 6, nrow = 4,
+          byrow = FALSE,
+          rel_widths = c(1, 1, 1.313, 1.313, 1.094, 1.094)) %>%
+  save_plot("figures/preds_plot_all.png", .,
+            bg = "black",
+            base_asp = 3 / 2,
+            base_height = 6)
