@@ -160,8 +160,8 @@ kytalyk_wv_plot <- ggplot() +
 kytalyk_plot_combined <-
   ggdraw(kytalyk_wv_plot) +
   draw_grob(as_grob(pan_arctic_overview),
-            x = 0.875,
-            y = 0.715,
+            x = 0.855,
+            y = 0.685,
             hjust = 0.5,
             vjust  = 0.4,
             scale = 0.4)

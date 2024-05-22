@@ -37,13 +37,14 @@ plot_raster <- function(rast_file,
   if(rast_file %in% c("rdg_2015", "rdg_2016",
                       "cbh_2015",
                       "tlb_2015")) {
-    rast_plot <-  ggplot() +
-      geom_spatraster(data = gsub(".*(rdg|cbh|tlb).*", "\\1", rast_file) %>%
+    rast_object <-  gsub(".*(rdg|cbh|tlb).*", "\\1", rast_file) %>%
                         grepl(., norm_files) %>%
                         norm_files[.] %>% 
                         .[1] %>%
                         rast() %>% 
-                        .[[1]],
+                        .[[1]]
+    rast_plot <-  ggplot() +
+      geom_spatraster(data = rast_object,
                       fill = "black") +
       geom_sf(data = aoi_geom,
                colour = "black",
@@ -58,7 +59,15 @@ plot_raster <- function(rast_file,
                vjust = -0.75,
                size = 18 /.pt,
                colour = "grey") +
-               theme_nothing()
+      annotate("text",
+               x = (ext(rast_object)[1]+ext(rast_object)[2])/2,
+               y =  (ext(rast_object)[3]+ext(rast_object)[4])/2,
+               label = "No Data",
+               size = 16 / .pt,
+               hjust = 0.5,
+               vjust = 0.5,
+               colour = "grey") +
+               theme_nothing() 
     return(rast_plot)
   }
 

@@ -1,0 +1,17 @@
+var,r,p
+temp_jja_mean,-0.42,0.118
+precip_son_sum,0.34,0.216
+temp_son_mean,0.26,0.342
+precip_jja_sum,-0.26,0.351
+temp_mam_mean,0.25,0.37
+spei_12_months,0.22,0.428
+precip_dfj_sum,0.22,0.438
+spei_9_months,0.2,0.474
+spei_24_months,0.2,0.479
+precip_sept_aug_sum,0.17,0.555
+spei_6_months,0.11,0.691
+precip_annual_sum,-0.09,0.748
+precip_mam_sum,0.08,0.766
+spei_3_months,0.08,0.773
+temp_djf_mean,0.05,0.854
+temp_annual_mean,0.03,0.902
