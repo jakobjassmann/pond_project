@@ -18,6 +18,9 @@ preds_files <- list.files("data/drone_data/", pattern = ".tif$", recursive = T, 
   .[grepl("/preds_filtered/",.)] %>%
   .[!grepl("cbh_2019\\.|tlb_2019_a|tlb_2019_b", .)]
 
+# Define a global background colour
+background_colour <- "grey25"
+
 # Helper function to plot rasters
 plot_raster <- function(rast_file,
                         max_val = 65535,
@@ -45,10 +48,10 @@ plot_raster <- function(rast_file,
                         .[[1]]
     rast_plot <-  ggplot() +
       geom_spatraster(data = rast_object,
-                      fill = "black") +
+                      fill = background_colour) +
       geom_sf(data = aoi_geom,
-               colour = "black",
-               fill = "black",
+               colour = background_colour,
+               fill = background_colour,
                linewidth = 2) +
       annotate("text",
                x = -Inf,
@@ -58,7 +61,7 @@ plot_raster <- function(rast_file,
                hjust = -0.25,
                vjust = -0.75,
                size = 18 /.pt,
-               colour = "grey") +
+               colour = "white") +
       annotate("text",
                x = (ext(rast_object)[1]+ext(rast_object)[2])/2,
                y =  (ext(rast_object)[3]+ext(rast_object)[4])/2,
@@ -66,7 +69,7 @@ plot_raster <- function(rast_file,
                size = 16 / .pt,
                hjust = 0.5,
                vjust = 0.5,
-               colour = "grey") +
+               colour = "white") +
                theme_nothing() 
     return(rast_plot)
   }
@@ -169,12 +172,12 @@ rast_plots <- list(norm_files %>% .[grepl("rdg_2014", .)],
                    norm_files %>% .[grepl("tlb_2017", .)],
                    norm_files %>% .[grepl("tlb_2019", .)],
                    norm_files %>% .[grepl("tlb_2021", .)]) %>%
-                   map(plot_raster)
+  map(plot_raster)
 plot_grid(plotlist = rast_plots,
           ncol = 6, nrow = 4,
           byrow = FALSE,
           rel_widths = c(1, 1, 1.313, 1.313, 1.094, 1.094)) %>%
   save_plot("figures/preds_plot_all.png", .,
-            bg = "black",
+            bg = background_colour,
             base_asp = 3 / 2,
             base_height = 6)

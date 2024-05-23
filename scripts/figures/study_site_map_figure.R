@@ -83,7 +83,7 @@ kytalyk_planet_crop <- kytalyk_planet %>%
 kytalyk_planet_crop <- kytalyk_planet_crop %>%
   stretch(minq = 0.0005,
           maxq = 0.9995)
-plotRGB(kytalyk_planet_crop)
+# plotRGB(kytalyk_planet_crop)
 
 # Plot using ggplot
 kytalyk_wv_plot <- ggplot() +
@@ -125,7 +125,7 @@ kytalyk_wv_plot <- ggplot() +
     annotate("text",
       x = st_bbox(cbh_poly)[1],
       y = st_bbox(cbh_poly)[4],
-      label = "b",
+      label = "high",
       fontface = "bold",
       hjust = 0,
       vjust = -0.5,
@@ -135,7 +135,7 @@ kytalyk_wv_plot <- ggplot() +
   annotate("text",
     x = st_bbox(tlb_poly)[1],
     y = st_bbox(tlb_poly)[4],
-    label = "c",
+    label = "med",
     fontface = "bold",
     hjust = 0,
     vjust = -0.5,
@@ -145,7 +145,7 @@ kytalyk_wv_plot <- ggplot() +
   annotate("text",
       x = st_bbox(rdg_poly)[1],
       y = st_bbox(rdg_poly)[4],
-      label = "a",
+      label = "low",
       fontface = "bold",
       hjust = 0,
       vjust = -0.5,
@@ -154,7 +154,8 @@ kytalyk_wv_plot <- ggplot() +
     ) +
   scale_x_continuous(expand = c(0,0)) +
   scale_y_continuous(expand = c(0,0)) +
-  theme_nothing()
+  theme_nothing() +
+  theme(panel.border = element_rect(colour = "black", fill = NA))
 
 ## Combine WV plot with overlay map
 kytalyk_plot_combined <-
