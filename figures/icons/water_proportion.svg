@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="210mm"
+   viewBox="0 0 210 210"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   sodipodi:docname="water_proportion.svg"
+   inkscape:export-filename="water_proportion.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.2692943"
+     inkscape:cx="-998.90716"
+     inkscape:cy="339.77697"
+     inkscape:window-width="2132"
+     inkscape:window-height="1099"
+     inkscape:window-x="2988"
+     inkscape:window-y="370"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1"
+     inkscape:export-bgcolor="#ffffffff" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:none;stroke:#666666;stroke-width:4.5;stroke-dasharray:none;stroke-opacity:1"
+       id="rect1"
+       width="204.94012"
+       height="204.94012"
+       x="2.5299194"
+       y="2.5299194" />
+    <path
+       style="font-variation-settings:normal;opacity:1;vector-effect:none;fill:#666666;fill-opacity:1;stroke:#666666;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;-inkscape-stroke:none;stop-color:#000000;stop-opacity:1"
+       d="M 39.707575,110.10591 20.998954,155.32962 60.936578,193.33026 82.980032,166.29564 63.757349,149.84526 74.593182,126.23205 Z"
+       id="path1" />
+    <path
+       style="fill:#666666;fill-opacity:1;stroke:#666666;stroke-width:2.57468;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="m 137.35086,29.754052 -27.51305,16.847689 8.56963,25.714892 31.57235,22.168013 18.04134,-10.640644 14.88412,-15.517609 -3.15724,-16.404331 -13.07998,-14.630887 z"
+       id="path2" />
+    <path
+       style="font-variation-settings:normal;opacity:1;vector-effect:none;fill:#666666;fill-opacity:1;stroke:#666666;stroke-width:1.80831;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;-inkscape-stroke:none;stop-color:#000000;stop-opacity:1"
+       d="m 142.4799,119.86534 -50.185845,36.61815 32.218085,26.11033 54.83267,-7.64204 c 0,0 9.91325,-28.65769 8.36431,-31.52345 -1.54894,-2.86577 -12.39157,-21.65248 -12.39157,-21.65248 z"
+       id="path3" />
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;white-space:pre;inline-size:0;fill:#4d4d4d;fill-opacity:1;stroke:#4d4d4d;stroke-width:0.0905885;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       x="91.705261"
+       y="30.56842"
+       id="text5"
+       transform="matrix(21.592429,0,0,26.722075,-1957.5795,-727.82757)"><tspan
+         id="tspan5"
+         style="fill:#4d4d4d;fill-opacity:1;stroke:#4d4d4d;stroke-width:0.0905885;stroke-dasharray:none;stroke-opacity:1"
+         x="91.705261"
+         y="30.56842">%</tspan></text>
+  </g>
+</svg>
