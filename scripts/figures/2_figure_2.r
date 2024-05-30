@@ -57,7 +57,7 @@ ts_length_hist <-
                                      site == "cbh" ~ 105))) +
   geom_histogram(aes(x = n_years, fill = site_plot), binwidth = 1) +
   scale_y_continuous(limits = c(0,120)) +
-  labs(x = "Number of years present", y = "Number of Ponds") +
+  labs(x = "Number of years pond present in time-series", y = "Number of Ponds") +
   geom_segment(x = 5.5, xend = 5.5, 
                y = -Inf, mapping = aes(yend = height),
                colour = "darkblue") +
@@ -127,7 +127,7 @@ cv_hist <- ggplot(pond_time_series_ids %>%
   scale_y_continuous(limits = c(0, 50)) +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
-  labs(x = "Area change relative to mean (CV) in %", y= "Number of Ponds") +
+  labs(x = "Variability in pond area relative to mean - CV (%)", y= "Number of Ponds") +
   facet_wrap(~site_plot, scales = "free") +
   theme_cowplot() + 
   theme(legend.position = "none",
