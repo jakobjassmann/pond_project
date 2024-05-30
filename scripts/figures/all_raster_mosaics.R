@@ -8,6 +8,8 @@ library(tidyterra)
 library(cowplot)
 library(sf)
 library(pbapply)
+library(colorspace)
+library(ggnewscale)
 
 # get rasters files
 norm_files <- list.files("data/drone_data/", pattern = ".tif$", recursive = T, full.names = T) %>%
@@ -83,13 +85,21 @@ plot_raster <- function(rast_file,
                 grepl("tlb", rast_file))]
   # Base plot of norm raster
   norm_rast <- rast(rast_file)
+  # Convert to grayscale using luminosity method
+  # http://www.johndcook.com/blog/2009/08/24/algorithms-convert-color-grayscale/
+  norm_rast_grey <- 0.21 * norm_rast[[1]] + 
+    0.72 * norm_rast[[2]] + 
+    0.07 * norm_rast[[3]]
   if(grepl("rdg", rast_file)) {
-    norm_rast[norm_rast[[4]] == 0 ] <- NA
+    norm_rast_grey[norm_rast[[4]] == 0 ] <- NA
   }
   rast_plot <- ggplot() +
-    geom_spatraster_rgb(data = norm_rast,
-                        max_col_value = max_val,
-                        alpha = 1) +
+    # Plot raster as greyscale 
+    geom_spatraster(data = norm_rast_grey) +
+    scale_fill_continuous_sequential(c1 = 0, c2 = 0, h1 = 0, l1 = 0, l2 = 100, p1 = 1, p2 = 1, na.value = "transparent") +
+    # geom_spatraster_rgb(data = norm_rast,
+    #                     max_col_value = max_val,
+    #                     alpha = 1) +
     geom_sf(data = aoi_geom,
             colour = site_colour,
             fill = NA,
@@ -102,6 +112,7 @@ plot_raster <- function(rast_file,
     pred_rast <- as.factor(rast(pred_file))
     if(!(length(pred_file) == 0 | levels(pred_rast)[[1]][1, 2] == "0")) {
       rast_plot <- rast_plot +
+        new_scale_fill() +
         geom_spatraster(data = pred_rast) +
         scale_fill_manual(values = "#00C4F5",
                           na.value = "transparent")
@@ -146,7 +157,9 @@ plot_raster <- function(rast_file,
 }
 
 #plot_raster(norm_files %>% .[grepl("rdg_2014", .)])
+#plot_raster(norm_files %>% .[grepl("cbh_2014", .)])
 #plot_raster("rdg_2015")
+ 
 
 rast_plots <- list(norm_files %>% .[grepl("rdg_2014", .)],
                    "rdg_2016",
