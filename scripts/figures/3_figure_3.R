@@ -40,7 +40,7 @@ get_legend(ggplot())
 
 
 # Generate time splot for cbh_049
-pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_049"),
+pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "tlb_013"),
                save_plot = F,
                return_plot = T,
                separate_legend = F,
@@ -64,10 +64,10 @@ pond_time_series_ids <- mutate(pond_time_series_ids,
 
 
 # Plot histograms for volume gain in each pond time series
-volume_gained_hist <- ggplot(pond_time_series_ids) +
-  geom_histogram(aes(x = mean_volume_gain_per_m2, fill = site_plot), 
+(volume_lost_hist <- ggplot(pond_time_series_ids) +
+  geom_histogram(aes(x = mean_volume_loss_per_m2, fill = site_plot), 
                  binwidth = 0.025, 
-                 colour = "white") +
+                 colour = "black") +
   geom_segment(aes(x = 0.1, xend = 0.1,
                    y = -Inf, yend = height),
                colour = "darkblue",
@@ -99,18 +99,18 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
             fontface = "bold",
             hjust = 1.2, vjust = 1.5,
             size = 14 / .pt) +
-  labs(x = "Volume gained per area lost (m³ / m²)", y = "Number of Ponds") +
+  labs(x = "Volume lost per area gained (m³ / m²)", y = "Number of Ponds") +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
-  scale_x_continuous(limits = c(-0.1, 0.4)) +
-  scale_y_continuous(limits = c(0, 100)) +
+  # scale_x_continuous(limits = c(-0.05, 0.55)) +
+  scale_y_continuous(limits = c(0, 250)) +
   facet_wrap(~site_plot, scales = "free_y") +
   theme_cowplot() + 
   theme(legend.position = "none",
         strip.background = element_blank(),
         strip.text = element_blank()) +
   theme(plot.background = element_rect(fill = "white"),
-        panel.background = element_rect(fill = "white"))
+        panel.background = element_rect(fill = "white")))
 
 
 # Composite plot
@@ -122,16 +122,16 @@ plot_grid(
                               panel.background = element_rect("black")),
                       scale = 0.94) +
             draw_plot(pond_plot, scale = 0.94), 
-  ggdraw() + draw_plot(volume_gained_hist, scale = 0.94) +
-    draw_image("figures/icons/veg_invasion.png", x = -0.33, y = 0.33, scale = 0.2),
+  ggdraw() + draw_plot(volume_lost_hist, scale = 0.94) +
+    draw_image("figures/icons/thermokarst.png", x = -0.35, y = 0.34, scale = 0.2),
           nrow = 2,
           ncol = 1,
           labels = letters[1:2],
           vjust = 1.6) %>%
-  save_plot("figures/4_figure_4.png",
+  save_plot("figures/3_figure_3.png",
             .,
             ncol = 1,
             nrow = 2,
-            base_asp = (7*18.28)/(3*19.12),
+            base_asp = (7*15.76)/(3*14.2),
             bg = "white")
 
