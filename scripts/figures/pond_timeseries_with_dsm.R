@@ -15,14 +15,11 @@ library(resmush)
 ponds <- read_sf("data/pond_polys/ponds_for_time_series.gpkg")
 load("data/pond_polys/pond_time_series.Rda")
 
-# # Load ponds filtered by size and overlap
-# ponds <- read_sf("data/pond_polys/pond_polys_filtered_size_intersection.gpkg")
-# 
-# # Add unique id to each ponds across both remaining sites
-# ponds <- ponds %>%
-#   mutate(site_spec_id = id) %>%
-#   mutate(., id = 1:nrow(.)) 
+# Set variable if plots should be generated to allow sourcing of functions
+# from this script
+generate_plots <- FALSE
 
+if(generate_plots){
 # Generate pond overview maps
 save_plot("figures/cbh/map_individual_ponds_cbh.png",
           ggplot(filter(ponds, site == "cbh")) +
@@ -68,6 +65,7 @@ save_plot("figures/tlb/pond_time_series_tlb.png",
             theme(panel.border = element_rect(color = "black", fill = NA)), 
           base_height = 12,
           bg = "white")
+}
 
 # Load raster data
 # Load rgb raster objects
@@ -110,15 +108,6 @@ plot_pond_rgb <- function(rgb_rast_file, pond_bounds, pond_sf){
     geom_spatraster_rgb(data = rgb_rast_crop,
                         max_col_value = 65535,
                         interpolate = F) +
-    annotate("text",
-             x = ext(rgb_rast_crop)[1] + (ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) * 0.05,
-             y = ext(rgb_rast_crop)[3] + (ext(rgb_rast_crop)[4] - ext(rgb_rast_crop)[3]) * 0.9,
-             label = year,
-             colour = "white",
-             fontface = "bold",
-             size = 5,
-             hjust = 0,
-             vjust = 0.5) +
     scale_x_continuous(expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0)) +
     theme_nothing() +
@@ -128,15 +117,27 @@ plot_pond_rgb <- function(rgb_rast_file, pond_bounds, pond_sf){
   if(sum(grepl(year, pond_sf$year))) {
     pond_plot_rgb <- pond_plot_rgb +       
       geom_sf(data = pond_sf[grepl(year, pond_sf$year),], 
-            colour = "white", 
-            size = 2,
-            alpha = 0.5,
+            colour = "#f9ce5a", 
+            linewidth = 0.5,
+            alpha = 1,
             fill = NA,
             linetype = "solid") +
     coord_sf(xlim = c(st_bbox(pond_bounds)[1],st_bbox(pond_bounds)[3]),
              ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4]))
   }
- 
+  
+  # Add year
+  pond_plot_rgb <- pond_plot_rgb + 
+    annotate("text",
+             x = ext(rgb_rast_crop)[1] + (ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) * 0.05,
+             y = ext(rgb_rast_crop)[3] + (ext(rgb_rast_crop)[4] - ext(rgb_rast_crop)[3]) * 0.9,
+             label = year,
+             colour = "white",
+             fontface = "bold",
+             size = 5,
+             hjust = 0,
+             vjust = 0.5)
+  
   # Return plot as ggplot object with year as title and adjusted borders
   return(pond_plot_rgb)
 }
@@ -203,7 +204,7 @@ plot_pond_dsm <- function(preds_file, dsm_file, pond_bounds, pond_sf){
               split(.$year) %>%
               .[[1]], 
           colour = "white", 
-          size = 2,
+          linewidth = 0.5,
           alpha = 1,
           fill = NA) +
     # constrain to pond bounds
@@ -256,22 +257,6 @@ legend_rgb <- function(pond_bounds){
              size = 5,
              hjust = 0.5,
              vjust = 0) +
-    # annotate("segment",
-    #          x = pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.1,
-    #          xend = pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.18,
-    #          y = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.8,
-    #          yend = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.8,
-    #          colour = "white",
-    #          linewidth = 0.5,
-    #          linetype = "solid") +
-    # annotate("text",
-    #          x =  pond_bounds[1] + (pond_bounds[2] - pond_bounds[1]) * 0.5,
-    #          y = pond_bounds[3] + (pond_bounds[4] - pond_bounds[3]) * 0.8,
-    #          label = "pond in given year",
-    #          colour = "white",
-    #          size = 3,
-    #          hjust = 0.5,
-    #          vjust = 0.5) +
     theme_nothing() +
     theme(plot.background = element_rect(fill = "black"),
           panel.background = element_rect(fill = "black"))
@@ -392,8 +377,131 @@ legend_dsm <- function(pond_bounds){
   return(dsm_legend)
 }
 
+# Helper function for plotting a legend for the manuscript figures
+legend_manuscript <- function(pond_bounds, bg_colour = "black"){
+
+  # Plot line legends (2 maps wide, one map tall)
+  lines_legend <- ggplot() +
+    annotate("segment", x = 10, xend = 40, y = 33, yend = 33, 
+             colour = "white", linewidth = 2) +
+    annotate("segment", x = 10, xend = 40, y = 66, yend = 66, 
+             colour = "#f9ce5a", linewidth = 2) +
+    annotate("text", x = 50, y = 33, 
+             colour = "white", size = 14 / .pt, hjust = 0,
+             label = "pond at start") +
+    annotate("text", x = 50, y = 66, 
+             colour = "white", size = 14 / .pt, hjust = 0,
+             label = "pond in given year") +
+    coord_fixed(xlim = c(0,200), ylim = c(0,100), 
+                clip = "off") +
+    theme_nothing() +
+    theme(plot.background = element_rect(bg_colour),
+          panel.background = element_rect(bg_colour))
+  
+  # Determine map width and height and adjust width if needed
+  # to get a minimum ration of 0.9
+  map_width <- pond_bounds[2] - pond_bounds[1]
+  map_height <- pond_bounds[4] - pond_bounds[3]
+  if(map_width / map_height < 0.9) map_width <- map_height * 0.9
+  
+  # Plot map legends (2 maps wide, one map tall)
+  (map_legend <- ggplot() +
+    annotate("segment", 
+             x = 0.7 * map_width / 2, 
+             xend = 0.7 * map_width / 2,
+             y = map_height / 3, 
+             yend = 2 *map_height / 3,
+             colour = "white",
+             arrow = arrow(),
+             linewidth = 1.5) +
+      annotate("text", 
+               x = 1.2 * map_width / 2, 
+               y = 0.5 * map_height,
+               label = "N", colour = "white",
+               fontface = "bold",
+               size = 20 / .pt) + 
+      annotate("segment", 
+               x =  1.5 * map_width - 5,
+               xend = 1.5 * map_width + 5,
+               y = (2 * map_height / 3) * 0.9,
+               yend = (2 * map_height / 3) * 0.9,
+               colour = "white",
+               linewidth = 2) +
+      annotate("text",
+               x = 1.5 * map_width, 
+               y = (2 * map_height / 3) * 1.1,
+               label = "10 m", colour = "white",
+               size = 14 / .pt) + 
+      annotate("rect", 
+               xmin =  1.5 * map_width - 5,
+               xmax = 1.5 * map_width - 5 + 10/3,
+               ymin =  0.3 * map_height - 10/6,
+               ymax = 0.3 * map_height + 10/6,
+               fill = "#82C4F5",
+               colour = NA) +
+      annotate("text",
+               x = 1.5 * map_width, 
+               y = 0.3 * map_height,
+               label = "water", colour = "white",
+               hjust = 0,
+               size = 14 / .pt) + 
+      coord_fixed(xlim = c(0, map_width * 2), ylim = c(0, map_height), 
+                  clip = "off") +
+      theme_nothing() +
+      theme(plot.background = element_rect(bg_colour),
+            panel.background = element_rect(bg_colour)))
+  
+  # Plot elevation legend (three maps wide, one map tall)
+  colour_legend <- ggplot() +
+    geom_point(aes(x = 1:15, y = 1:15, fill = rep(c(-0.1, 0, 0.5), 5))) +
+    scale_colour_manual(values = "white",
+                        labels = "pond at start\nof time-series") +
+    scale_fill_continuous_sequential(palette = "inferno", rev = F,
+                                     limits = c(-0.1, 0.5), 
+                                     breaks = seq(-0.1,0.5,0.1),
+                                     oob = scales::squish,
+                                     begin = 0.1,
+                                     end = 0.9,
+                                     labels = c("-0.1", "0.0", "0.1", "0.2", "0.3", "0.4" , "0.5+")
+    ) +
+    guides(fill = guide_colourbar(
+      title = "relative elevation [m]",
+      title.position = "top",
+      title.hjust = 0.5,
+      title.vjust = 0.5,
+      frame.colour = "white",
+      barwidth = unit(2.5, "in")
+    )) +
+    theme(legend.position = "top",
+          legend.key = element_rect(fill = NA, color = NA),
+          legend.background = element_rect(fill = NA),
+          legend.title = element_text(colour = "white", size = 14),
+          legend.text = element_text(colour = "white", size = 14),
+          plot.background = element_rect(fill = "black")) 
+  colour_legend <- ggdraw() +
+    draw_plot(ggplot() + 
+                coord_fixed(xlim = c(0, map_width * 2), ylim = c(0, map_height)) +
+                theme_nothing() +
+                theme(plot.background = element_rect(bg_colour),
+                      panel.background = element_rect(bg_colour))) +
+    draw_grob(get_legend(colour_legend))
+  
+  # put all legends together and return
+  all_legends <- plot_grid(lines_legend,
+                          map_legend,
+                          colour_legend,
+                          nrow = 1,
+                          ncol = 3,
+                          rel_widths = c(2,2,3))
+  return(all_legends)
+}
+
 # Helper function to generate one composite plot for a given pond time series / combination
-composite_plot <- function(combination){
+composite_plot <- function(combination, 
+                           save_plot = TRUE, 
+                           return_plot = FALSE, 
+                           separate_legend = FALSE,
+                           manuscript_legend = FALSE){
   # get site name
   site_name <- pull(combination, site)
   
@@ -417,49 +525,122 @@ composite_plot <- function(combination){
   dsm_plots <- map2(preds_rasts_site, dsm_rasts_site, plot_pond_dsm, 
                     pond_bounds = pond_bounds, pond_sf = ponds_combination)
   
-  # Combine plots into a single list
-  plot_list <- c(rgb_plots, 
-                 list(legend_rgb(pond_bounds)), 
-                 dsm_plots, 
-                 list(legend_dsm(pond_bounds))
-                 )
-  
-  # Determine ratio for plotting
-  length_x <- pond_bounds[2] - pond_bounds[1]
-  length_y <- pond_bounds[4] - pond_bounds[3]
-  asp_ratio <- length_x / length_y
-  if(asp_ratio < 0.9) asp_ratio <- 0.9
-  
-  # Prepare output file name
-  output_file <- paste0("figures/", site_name, "/individual_ponds/", combination$ts_id, ".png")
-  
-  # Generate grid from list and save plot
-  plot_grid(plotlist = plot_list,
-            nrow = 2,
-            ncol = length(norm_rasts_site) +1 ) %>%
-    save_plot(output_file,
-              .,
-              nrow = 2,
-              ncol = length(norm_rasts_site) + 1,
-              base_height = 2,
-              base_asp = asp_ratio,
-              bg = "black")
-  
-  # Return nothing
+  # Check wich legend was requested
+  if(manuscript_legend){
+    # Manuscript legend (on new row) 
+    
+    # Combine plots
+    plot_list <- c(rgb_plots,
+                  dsm_plots)
+    
+    # Determine ratio for plotting
+    length_x <- pond_bounds[2] - pond_bounds[1]
+    length_y <- pond_bounds[4] - pond_bounds[3]
+    asp_ratio <- length_x / length_y
+    if(asp_ratio < 0.9) asp_ratio <- 0.9
+    
+    # Prepare output file name
+    output_file <- paste0("figures/", site_name, "/individual_ponds/", combination$ts_id, ".png")
+    
+    # Generate grid from list and save plot if requested
+    if(save_plot){
+      plot_grid(plot_grid(plotlist = plot_list,
+                          nrow = 2,
+                          ncol = length(norm_rasts_site)),
+                legend_manuscript(pond_bounds),
+                rel_heights = c(1,0.5),
+                nrow = 2,
+                ncol = 1) %>%
+        save_plot(output_file,
+                  .,
+                  nrow = 3,
+                  ncol = 7,
+                  base_height = 1.25,
+                  base_asp = asp_ratio,
+                  bg = "black")
+    }
+    
+    # Return plot if requested
+    if(return_plot){
+      # If requested separate plots and legend
+      if(separate_legend){
+        return(list(plot_grid(plotlist = plot_list,
+                              nrow = 2,
+                              ncol = length(norm_rasts_site)),
+                    legend_manuscript(pond_bounds)))
+      } # Otherwise return everything together
+      return(     plot_grid(plot_grid(plotlist = plot_list,
+                                      nrow = 2,
+                                      ncol = length(norm_rasts_site)),
+                            legend_manuscript(pond_bounds),
+                            rel_heights = c(1,0.5),
+                            nrow = 2,
+                            ncol = 1))
+    }
+  } else{
+    # In-row legend
+    
+    # Combine plots into a single list
+    plot_list <- c(rgb_plots, 
+                   list(legend_rgb(pond_bounds)), 
+                   dsm_plots, 
+                   list(legend_dsm(pond_bounds))
+    )
+    
+    # Determine ratio for plotting
+    length_x <- pond_bounds[2] - pond_bounds[1]
+    length_y <- pond_bounds[4] - pond_bounds[3]
+    asp_ratio <- length_x / length_y
+    if(asp_ratio < 0.9) asp_ratio <- 0.9
+    
+    # Prepare output file name
+    output_file <- paste0("figures/", site_name, "/individual_ponds/", combination$ts_id, ".png")
+    
+    # Generate grid from list and save plot if requested
+    if(save_plot){
+      plot_grid(plotlist = plot_list,
+                nrow = 2,
+                ncol = length(norm_rasts_site) + 1) %>%
+        save_plot(output_file,
+                  .,
+                  nrow = 2,
+                  ncol = length(norm_rasts_site) + 1,
+                  base_height = 2,
+                  base_asp = asp_ratio,
+                  bg = "black")
+    }
+    
+    # Return plot if requested
+    if(return_plot){
+      # If requested separate plots and legend
+      if(separate_legend){
+        return(list(plot_grid(plotlist = plot_list[c(-(length(norm_rasts_site) + 1),-((2*length(norm_rasts_site)) + 2))],
+                              nrow = 2,
+                              ncol = length(norm_rasts_site)),
+                    plot_list[[length(norm_rasts_site) + 1]],
+                    plot_list[[(2*length(norm_rasts_site)) + 2]]))
+      } # Otherwise return everything together
+      return(plot_grid(plotlist = plot_list,
+                       nrow = 2,
+                       ncol = length(norm_rasts_site) + 1))
+    }
+  }
+  # Otherwise return nothing
   return(NULL)
 }
 
-# Test: composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_001"))
+# Test: composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_031"), manuscript_legend = T)
 
-# Remove previous plots (if they exist)
-list.files("figures/cbh/individual_ponds/", full.names = T) %>% file.remove()
-list.files("figures/tlb/individual_ponds/", full.names = T) %>% file.remove()
-
-## Generate plots for all unique ponds
-pond_time_series_ids %>%
-  split(., .$ts_id) %>%
-  pblapply(., composite_plot, cl = 31)
-
+if(generate_plots){
+  # Remove previous plots (if they exist)
+  list.files("figures/cbh/individual_ponds/", full.names = T) %>% file.remove()
+  list.files("figures/tlb/individual_ponds/", full.names = T) %>% file.remove()
+  
+  ## Generate plots for all unique ponds
+  pond_time_series_ids %>%
+    split(., .$ts_id) %>%
+    pblapply(., composite_plot, manuscript_legend = T, cl = 31)
+}
 
 
 
