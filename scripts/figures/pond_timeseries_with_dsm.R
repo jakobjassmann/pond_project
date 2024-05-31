@@ -113,9 +113,17 @@ plot_pond_rgb <- function(rgb_rast_file, pond_bounds, pond_sf){
     theme_nothing() +
     theme(panel.border = element_rect(colour = "grey20", fill=NA))
   
-  # Add pond outline if available for the year and constrain plot to bounds
+  # Add pond outline if available for the year, and constrain plot to bounds
   if(sum(grepl(year, pond_sf$year))) {
-    pond_plot_rgb <- pond_plot_rgb +       
+    pond_plot_rgb <- pond_plot_rgb +
+      # geom_sf(data = pond_sf %>% filter(year != 2017) %>%
+      #           arrange(year) %>% 
+      #           split(.$year) %>%
+      #           .[[1]], 
+      #         colour = "white", 
+      #         linewidth = 0.5,
+      #         alpha = 1,
+      #         fill = NA) +    
       geom_sf(data = pond_sf[grepl(year, pond_sf$year),], 
             colour = "#f9ce5a", 
             linewidth = 0.5,
@@ -395,8 +403,8 @@ legend_manuscript <- function(pond_bounds, bg_colour = "black"){
     coord_fixed(xlim = c(0,200), ylim = c(0,100), 
                 clip = "off") +
     theme_nothing() +
-    theme(plot.background = element_rect(bg_colour),
-          panel.background = element_rect(bg_colour))
+    theme(plot.background = element_rect(fill = bg_colour, colour = NA),
+          panel.background = element_rect(fill = bg_colour, colour = NA))
   
   # Determine map width and height and adjust width if needed
   # to get a minimum ration of 0.9
@@ -448,8 +456,8 @@ legend_manuscript <- function(pond_bounds, bg_colour = "black"){
       coord_fixed(xlim = c(0, map_width * 2), ylim = c(0, map_height), 
                   clip = "off") +
       theme_nothing() +
-      theme(plot.background = element_rect(bg_colour),
-            panel.background = element_rect(bg_colour)))
+      theme(plot.background = element_rect(fill = bg_colour, colour = NA),
+            panel.background = element_rect(fill = bg_colour, colour = NA)))
   
   # Plot elevation legend (three maps wide, one map tall)
   colour_legend <- ggplot() +
@@ -477,13 +485,13 @@ legend_manuscript <- function(pond_bounds, bg_colour = "black"){
           legend.background = element_rect(fill = NA),
           legend.title = element_text(colour = "white", size = 14),
           legend.text = element_text(colour = "white", size = 14),
-          plot.background = element_rect(fill = "black")) 
+          plot.background = element_rect(fill = bg_colour, colour = NA)) 
   colour_legend <- ggdraw() +
     draw_plot(ggplot() + 
                 coord_fixed(xlim = c(0, map_width * 2), ylim = c(0, map_height)) +
                 theme_nothing() +
-                theme(plot.background = element_rect(bg_colour),
-                      panel.background = element_rect(bg_colour))) +
+                theme(plot.background = element_rect(fill = bg_colour, colour = NA),
+                      panel.background = element_rect(fill = bg_colour, colour = NA))) +
     draw_grob(get_legend(colour_legend))
   
   # put all legends together and return
@@ -547,7 +555,7 @@ composite_plot <- function(combination,
       plot_grid(plot_grid(plotlist = plot_list,
                           nrow = 2,
                           ncol = length(norm_rasts_site)),
-                legend_manuscript(pond_bounds),
+                legend_manuscript(pond_bounds, bg_colour = "black"),
                 rel_heights = c(1,0.5),
                 nrow = 2,
                 ncol = 1) %>%
