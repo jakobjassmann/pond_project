@@ -5,6 +5,7 @@ library(tidyverse)
 library(sf)
 library(ggplot2)
 library(cowplot)
+library(gt)
 
 # Load ponds
 pond_polys_filtered_size <- read_sf("data/pond_polys/pond_polys_filtered_size.gpkg")
@@ -54,7 +55,8 @@ water_prop <- water_prop %>%
            prop = 0)
   )
 # Save as csv
-write_csv(water_prop, "tables/annual_water_prpop.csv")
+write_csv(water_prop, "tables/annual_water_prop.csv")
+gt(water_prop) %>% gtsave("tables/annual_water_prop.html")
 
 # water_prop_overlap <- water_area_overlap %>%
 #   split(.$site) %>%
@@ -155,11 +157,11 @@ water_prop_plot <- ggplot() +
             colour = "black") +
   annotate("rect", xmin = 2018.3, xmax = 2018.6, 
             ymin = 16.6, ymax = 17.4,
-            fill = "#FFE700",
+            fill = "#19CEE6",
             colour = "black") +
   annotate("rect", xmin = 2018.3, xmax = 2018.6, 
             ymin = 14.6, ymax = 15.4,
-            fill = "#19CEE6",
+            fill = "#FFE700",
             colour = "black") +
   annotate("text", x = 2018.7, y = 19, 
            label = paste0("CV: ", cv_site[1,2], "% (", cv_site[1,3], "%)"),

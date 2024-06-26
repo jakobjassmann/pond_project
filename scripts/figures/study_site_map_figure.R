@@ -25,7 +25,7 @@ cat(custom_crs$wkt)
 custom_crs$wkt <- gsub('"Longitude of origin",-45,', '"Longitude of origin",90,', custom_crs$wkt)
 cat(custom_crs$wkt)
 
-# Define Polygon with cut off at 50 deg
+# Define Polygon with cut off at 45 deg
 bounds_poly <- data.frame(
   x = 0,
   y = 90
@@ -33,7 +33,14 @@ bounds_poly <- data.frame(
   st_as_sf(coords = c("x", "y"),
            crs = 4326) %>%
   st_transform(custom_crs) %>%
-  st_buffer(3314693)
+  # st_buffer(3314693) # arbitrary cut off (earlier versions)
+  st_buffer(3909167) # 55 deg cut off
+  
+# Bonus code to determine buffer size for degree cut off
+  # st_point(x = c(0, 55)) %>%
+  #   st_sfc(crs = 4326) %>%
+  #   st_transform(custom_crs) %>%
+  #   st_distance(st_point(c(0,0)) %>% st_sfc(crs = custom_crs))
 
 # Get outline of countries
 countries_poly <- ne_countries(scale = 50, returnclass = "sf") %>%
@@ -122,40 +129,56 @@ kytalyk_wv_plot <- ggplot() +
     fontface = "bold",
     size = 5
   ) +
-    annotate("text",
-      x = st_bbox(cbh_poly)[1],
-      y = st_bbox(cbh_poly)[4],
-      label = "high",
-      fontface = "bold",
-      hjust = 0,
-      vjust = -0.5,
-      size = 7,
-      colour = "#FF369D"
-    ) +
+  annotate("segment", 
+           x = ext(kytalyk_planet_crop)[2] - 0.15 * (ext(kytalyk_planet_crop)[2] - ext(kytalyk_planet_crop)[1]), 
+           xend =  ext(kytalyk_planet_crop)[2] - 0.15 * (ext(kytalyk_planet_crop)[2] - ext(kytalyk_planet_crop)[1]), 
+           y = ext(kytalyk_planet_crop)[3] + 0.225 * (ext(kytalyk_planet_crop)[4] - ext(kytalyk_planet_crop)[3]),
+           yend = ext(kytalyk_planet_crop)[3] + 0.325 * (ext(kytalyk_planet_crop)[4] - ext(kytalyk_planet_crop)[3]),
+           linewidth = 2,
+           arrow = arrow(),
+           colour = "white") +
   annotate("text",
-    x = st_bbox(tlb_poly)[1],
-    y = st_bbox(tlb_poly)[4],
-    label = "med",
-    fontface = "bold",
-    hjust = 0,
-    vjust = -0.5,
-    size = 7,
-    colour = "#19CEE6"
+           x = ext(kytalyk_planet_crop)[2] - 0.08 * (ext(kytalyk_planet_crop)[2] - ext(kytalyk_planet_crop)[1]),
+           y = ext(kytalyk_planet_crop)[3] + 0.275 * (ext(kytalyk_planet_crop)[4] - ext(kytalyk_planet_crop)[3]),
+           label = "N",
+           colour = "white",
+           fontface = "bold",
+           size = 12) +
+  annotate("text",
+           x = st_bbox(cbh_poly)[1],
+           y = st_bbox(cbh_poly)[4],
+           label = "high",
+           fontface = "bold",
+           hjust = 0,
+           vjust = -0.5,
+           size = 7,
+           colour = "#FF369D"
   ) +
   annotate("text",
-      x = st_bbox(rdg_poly)[1],
-      y = st_bbox(rdg_poly)[4],
-      label = "low",
-      fontface = "bold",
-      hjust = 0,
-      vjust = -0.5,
-      size = 7,
-      colour = "#FFE700"
-    ) +
+           x = st_bbox(tlb_poly)[1],
+           y = st_bbox(tlb_poly)[4],
+           label = "med",
+           fontface = "bold",
+           hjust = 0,
+           vjust = -0.5,
+           size = 7,
+           colour = "#19CEE6"
+  ) +
+  annotate("text",
+           x = st_bbox(rdg_poly)[1],
+           y = st_bbox(rdg_poly)[4],
+           label = "low",
+           fontface = "bold",
+           hjust = 0,
+           vjust = -0.5,
+           size = 7,
+           colour = "#FFE700"
+  ) +
   scale_x_continuous(expand = c(0,0)) +
   scale_y_continuous(expand = c(0,0)) +
   theme_nothing() +
   theme(panel.border = element_rect(colour = "black", fill = NA))
+# kytalyk_wv_plot
 
 ## Combine WV plot with overlay map
 kytalyk_plot_combined <-

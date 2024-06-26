@@ -14,30 +14,37 @@ library(cowplot)
 source("scripts/figures/water_time_series_all.R")
 source("scripts/analysis/climate_analysis.R")
 
-plot_grid(plotlist = list(water_prop_plot, climate_study),
-          nrow = 2)
+# Define 8% margin based on plot size of 4 inch
+marings_perc <- list(t = 4 * 0.06,
+     r = 4 * (3/2) * 0.06,
+     b = 4 * 0.06,
+     l = 4 * (3/2) * 0.06)
 
 # Create combined plot
-{ggdraw() + draw_plot(plot_grid(
-          plot_grid(ggdraw() + draw_image("figures/overview_map.png"),
-              ggdraw() + draw_image("figures/preds_plot_all.png"),
-              nrow = 2,
-              label_colour = "white",
-              label_size = 18,
-              labels = c("a", "b")),
-          plot_grid(water_prop_plot,
-                    climate_study, 
-                    nrow = 2, 
-                    labels = c("c", "d"),
-                    label_size = 18,
-                    align = "v"),
-          byrow = TRUE)) + 
-    draw_image("figures/icons/water_proportion.png",
-    scale = 0.1, x = 0.1, y = 0.42) + 
-    draw_image("figures/icons/thermometer.png",
-    scale = 0.1, x = 0.09, y = - 0.08) + 
-    draw_image("figures/icons/snow.png",
-    scale = 0.1, x = 0.4, y = - 0.08)} %>%
+{ggdraw() + draw_plot(
+  plot_grid(
+    plot_grid(
+      ggdraw() + draw_image("figures/overview_map.png", scale = 0.92),
+      ggdraw() + draw_image("figures/preds_plot_all.png", scale = 0.92),
+      nrow = 1,
+      labels = letters[1:2],
+      label_size = 16
+    ),
+    plot_grid(water_prop_plot + theme(plot.margin = margin(marings_perc, unit = "inch")),
+              climate_study + theme(plot.margin = margin(marings_perc, unit = "inch")), 
+              nrow = 1,
+              labels = letters[3:4],
+              label_size = 16,
+              align = "h"),
+    nrow = 2)) +
+  # +
+  # draw_image("figures/icons/water_proportion.png",
+  # scale = 0.1, x = 0.1, y = 0.42) + 
+  draw_image("figures/icons/thermometer.png",
+  scale = 0.1, x = 0.105, y = - 0.08) +
+  draw_image("figures/icons/snow.png",
+  scale = 0.1, x = 0.37, y = - 0.08)
+  } %>%
   save_plot("figures/1_figure_1.png", 
                    .,
                    base_height = 4,

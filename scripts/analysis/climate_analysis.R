@@ -8,7 +8,7 @@ library(cowplot)
 library(ggtext)
 
 # Read climate and water data
-water_area <- read_csv("tables/annual_water_prpop.csv") %>%
+water_area <- read_csv("tables/annual_water_prop.csv") %>%
   group_by(site, calendar_year) %>% 
   summarise(prop = mean(prop)) %>%
   mutate(year = calendar_year) %>%

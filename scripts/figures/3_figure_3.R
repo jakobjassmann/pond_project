@@ -67,7 +67,7 @@ pond_time_series_ids <- mutate(pond_time_series_ids,
 (volume_lost_hist <- ggplot(pond_time_series_ids) +
   geom_histogram(aes(x = mean_volume_loss_per_m2, fill = site_plot), 
                  binwidth = 0.025, 
-                 colour = "black") +
+                 colour = "grey20") +
   geom_segment(aes(x = 0.1, xend = 0.1,
                    y = -Inf, yend = height),
                colour = "darkblue",
@@ -75,7 +75,7 @@ pond_time_series_ids <- mutate(pond_time_series_ids,
                  st_drop_geometry() %>%
                  group_by(site_plot) %>%
                  slice(1) %>%
-                 mutate(height = case_when(site_plot == "med" ~ 40,
+                 mutate(height = case_when(site_plot == "med" ~ 50,
                                            site_plot == "high" ~ 90))) +
   geom_text(aes(x = 0.1, 
                 y = height,
@@ -88,7 +88,7 @@ pond_time_series_ids <- mutate(pond_time_series_ids,
               st_drop_geometry() %>%
               group_by(site_plot) %>%
               slice(1) %>%
-              mutate(height = case_when(site_plot == "med" ~ 40,
+              mutate(height = case_when(site_plot == "med" ~ 50,
                                         site_plot == "high" ~ 90))) +
   geom_text(aes(x = Inf, y = Inf,
                 label = paste0("Site: ", site_plot),
@@ -122,8 +122,7 @@ plot_grid(
                               panel.background = element_rect("black")),
                       scale = 0.94) +
             draw_plot(pond_plot, scale = 0.94), 
-  ggdraw() + draw_plot(volume_lost_hist, scale = 0.94) +
-    draw_image("figures/icons/thermokarst.png", x = -0.35, y = 0.34, scale = 0.2),
+  ggdraw() + draw_plot(volume_lost_hist, scale = 0.94),
           nrow = 2,
           ncol = 1,
           labels = letters[1:2],

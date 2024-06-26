@@ -3,7 +3,7 @@
 # Note: this script requires "pond_time_series_analysis.R" to be run
 
 # Dependencies
-library(gpplot)
+library(ggplot2)
 library(tidyverse)
 library(sf)
 library(cowplot)
@@ -67,7 +67,7 @@ pond_time_series_ids <- mutate(pond_time_series_ids,
 volume_gained_hist <- ggplot(pond_time_series_ids) +
   geom_histogram(aes(x = mean_volume_gain_per_m2, fill = site_plot), 
                  binwidth = 0.025, 
-                 colour = "white") +
+                 colour = "grey20") +
   geom_segment(aes(x = 0.1, xend = 0.1,
                    y = -Inf, yend = height),
                colour = "darkblue",
@@ -122,8 +122,7 @@ plot_grid(
                               panel.background = element_rect("black")),
                       scale = 0.94) +
             draw_plot(pond_plot, scale = 0.94), 
-  ggdraw() + draw_plot(volume_gained_hist, scale = 0.94) +
-    draw_image("figures/icons/veg_invasion.png", x = -0.33, y = 0.33, scale = 0.2),
+  ggdraw() + draw_plot(volume_gained_hist, scale = 0.94),
           nrow = 2,
           ncol = 1,
           labels = letters[1:2],

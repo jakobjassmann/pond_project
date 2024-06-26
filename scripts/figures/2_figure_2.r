@@ -55,7 +55,9 @@ ts_length_hist <-
   ggplot(pond_time_series_ids %>%
            mutate(height = case_when(site == "tlb" ~ 50,
                                      site == "cbh" ~ 105))) +
-  geom_histogram(aes(x = n_years, fill = site_plot), binwidth = 1) +
+  geom_histogram(aes(x = n_years, fill = site_plot),
+                 binwidth = 1,
+                 colour = "grey20") +
   scale_y_continuous(limits = c(0,120)) +
   labs(x = "Number of years pond present in time-series", y = "Number of Ponds") +
   geom_segment(x = 5.5, xend = 5.5, 
@@ -96,7 +98,9 @@ cv_hist <- ggplot(pond_time_series_ids %>%
                     filter(n_years >= 3) %>%
                     mutate(height = case_when(site == "tlb" ~ 25,
                                               site == "cbh" ~ 47.5))) +
-  geom_histogram(aes(x= cv * 100, fill = site_plot), breaks = seq(0,2,0.1) * 100) +
+  geom_histogram(aes(x= cv * 100, fill = site_plot), 
+                 breaks = seq(0,2,0.1) * 100,
+                 colour = "grey20") +
   geom_segment(aes(x = mean(cv) * 100, xend = mean(cv) * 100,
                    y = -Inf, yend = height),
                colour = "darkblue") +
@@ -136,17 +140,13 @@ cv_hist <- ggplot(pond_time_series_ids %>%
 
 
 # Combine both plots into one figure
-combined_plot <- ggdraw() +
-  draw_plot(
+combined_plot <- 
     plot_grid(ts_length_hist,
               cv_hist,
               nrow = 2, ncol = 1,
               align = "hv", 
-              labels = letters[1:2])) +
-  draw_image("figures/icons/pond_occurence.png",
-             scale = 0.1, x = -0.345, y = 0.435) +
-  draw_image("figures/icons/pond_area_change.png",
-             scale = 0.1, x = -0.345, y = -0.065)
+              labels = letters[1:2],
+              label_size = 16)
 
 # Save plot
 save_plot("figures/2_figure_2.png", 
