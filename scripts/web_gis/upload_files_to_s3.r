@@ -49,6 +49,7 @@ stopCluster(cl)
 # Upload leaflet
 put_object("docs/index.html",
   bucket = "pondproject")
+
 # Upload leaflet ajax dependency
 # Dowanload from: https://github.com/calvinmetcalf/leaflet-ajax and store in docs folder
 put_object("docs/leaflet.ajax.js",
