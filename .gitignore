@@ -41,6 +41,9 @@ vignettes/*.pdf
 # Rproject
 *Rproj
 
+# Leaflet file
+/docs/leaflet.ajax.js
+
 # Folders
 /data/
 /figures/cbh/individual_ponds/
