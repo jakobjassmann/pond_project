@@ -38,6 +38,32 @@ get_legend <- function(plot){
 ggdraw() + draw_grob(get_legend(test_plot))
 get_legend(ggplot())
 
+# Calculate summary stats for pond change
+# Number of ponds where thermokarst was detected
+(pond_time_series_ids %>% 
+    st_drop_geometry() %>%
+    filter(mean_volume_gain_per_m2 >= 0.1) %>% 
+    nrow())
+# Percentage of ponds where thermokarst was detected
+((pond_time_series_ids %>% 
+    st_drop_geometry() %>%
+    filter(mean_volume_gain_per_m2 >= 0.1) %>% 
+    nrow()) / nrow(pond_time_series_ids)) %>%
+  round(2)
+# Per site
+pond_time_series_ids %>% 
+  st_drop_geometry() %>%
+  group_by(site) %>%
+  filter(mean_volume_gain_per_m2 >= 0.1) %>% 
+  tally() %>% 
+  mutate(per = n / pull(tally(group_by(st_drop_geometry(pond_time_series_ids), site)), n)) %>%
+  mutate(per = round(per, 2))
+# Percentage of ponds with either vegetation incursion or thermocarst
+((pond_time_series_ids %>% 
+    st_drop_geometry() %>%
+    filter(mean_volume_gain_per_m2 >= 0.1 | mean_volume_loss_per_m2 >= 0.1) %>% 
+    nrow()) / nrow(pond_time_series_ids)) %>%
+  round(2)
 
 # Generate time splot for cbh_049
 pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_049"),
