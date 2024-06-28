@@ -11,6 +11,25 @@ library(cowplot)
 # Load annotated pond-time-series dataset
 load("data/pond_polys/pond_time_series.Rda")
 
+# Calculate proportion of ponds 
+# Present six less than 6 years
+((pond_time_series_ids %>% filter(n_years < 6) %>% st_drop_geometry() %>% nrow()) /
+    nrow(pond_time_series_ids)) %>% round(2)
+# Present six or more 6 years
+((pond_time_series_ids %>% filter(n_years >= 6) %>% st_drop_geometry() %>% nrow()) /
+  nrow(pond_time_series_ids)) %>% round(2)
+# CV larger than 10%
+((pond_time_series_ids %>% filter(cv > 0.1) %>% st_drop_geometry() %>% nrow()) /
+  nrow(pond_time_series_ids)) %>% round(2)
+(pond_time_series_ids %>% filter(cv <= 0.1) %>% st_drop_geometry() %>% nrow()) /
+  nrow(pond_time_series_ids)
+# Mean CV
+(pond_time_series_ids %>% st_drop_geometry() %>% summarise(mean = mean(cv))) %>% round(2)
+# Stable ponds
+(pond_time_series_ids %>% filter(cv <= 0.1 & n_years >= 6) %>% st_drop_geometry() %>% nrow()) /
+  nrow(pond_time_series_ids)
+
+
 # Set side colours
 rdg_col <- "#FFE700"
 cbh_col <- "#FF369D"
