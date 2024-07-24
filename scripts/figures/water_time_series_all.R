@@ -5,6 +5,7 @@ library(tidyverse)
 library(sf)
 library(ggplot2)
 library(cowplot)
+library(broom)
 library(gt)
 
 # Load ponds
@@ -55,8 +56,57 @@ water_prop <- water_prop %>%
            prop = 0)
   )
 # Save as csv
-write_csv(water_prop, "tables/annual_water_prop.csv")
+write_csv(water_prop %>%
+            mutate(area = round(area),
+                   prop = round(prop, 2)), "tables/annual_water_prop.csv")
 gt(water_prop) %>% gtsave("tables/annual_water_prop.html")
+
+# Calculate repeat survey error
+water_area %>% filter(calendar_year == 2019) %>%
+  filter(site != "rdg") %>%
+  group_by(site) %>%
+  summarise(max_min_mean = (max(area) - min (area)))
+water_area %>% 
+  group_by(site) %>%
+  summarise(max(area, na.rm = T) - min(area, na.rm = T))
+
+# Calculate trend (I don't think this is a good idea, but Gabriela requested this
+trend_models_all <- water_prop %>%
+  mutate(calendar_year = as.numeric(calendar_year)) %>%
+  split(.$site) %>%
+  map(function(x) lm(prop ~ calendar_year, x)) 
+map(trend_models_all, summary)
+# Coefficients:
+#                                 Estimate Std. Error t value Pr(>|t|)
+# cbh: calendar_year -0.007192   0.009969  -0.721    0.498
+# rdg: calendar_year -4.282e-06  9.053e-06  -0.473    0.6617
+# tlb: calendar_year -0.001046   0.001557  -0.672    0.523
+imap(trend_models_all, function(model, name){
+  model %>%
+    tidy() %>%
+    mutate(across(2:5, function(x) round(x,3))) %>%
+    gt() %>%
+    gtsave(paste0("tables/trend_all_", name, ".html" ))
+})
+
+# Trends without 2017:
+trend_models_no2017 <- water_prop %>%
+  filter(year != 2017) %>%
+  split(.$site) %>%
+  map(function(x) lm(prop ~ as.numeric(calendar_year), x))
+map(trend_models_no2017, summary)
+# Coefficients:
+#                                 Estimate Std. Error t value Pr(>|t|)
+# cbh: as.numeric(calendar_year)    -556.0      311.6  -1.785    0.134
+# rdg: as.numeric(calendar_year)   -0.7007     1.4813  -0.473    0.661
+# tlb: as.numeric(calendar_year)    -53.22      69.87  -0.762    0.475
+imap(trend_models_no2017, function(model, name){
+  model %>%
+    tidy() %>%
+    mutate(across(2:5, function(x) round(x,3))) %>%
+    gt() %>%
+    gtsave(paste0("tables/trend_no2017_", name, ".html" ))
+})
 
 # water_prop_overlap <- water_area_overlap %>%
 #   split(.$site) %>%
