@@ -504,6 +504,127 @@ legend_manuscript <- function(pond_bounds, bg_colour = "black"){
   return(all_legends)
 }
 
+# Helper function for plotting a legend for the manuscript figures
+legend_manuscript2 <- function(pond_bounds, bg_colour = "black"){
+  
+  # Plot line legends (4 maps wide, 1/3 maps tall)
+  lines_legend <- ggplot() +
+    annotate("segment", x = 10, 
+             xend = 40, y = 1/2 * 100 / 3, 
+             yend = 1/2 * 100 / 3, 
+             colour = "white", linewidth = 2) +
+    annotate("segment", x = 210, xend = 240, 
+             y = 1/2 * 100 / 3, yend = 1/2 * 100 / 3, 
+             colour = "#f9ce5a", linewidth = 2) +
+    annotate("text", x = 50, y = 1/2 * 100 / 3, 
+             colour = "white", size = 14 / .pt, hjust = 0,
+             label = "pond at start") +
+    annotate("text", x = 250, y = 1/2 * 100 / 3, 
+             colour = "white", size = 14 / .pt, hjust = 0,
+             label = "pond in given year") +
+    coord_fixed(xlim = c(0,400), ylim = c(0,100/3), 
+                clip = "off") +
+    theme_nothing() +
+    theme(plot.background = element_rect(fill = bg_colour, colour = NA),
+          panel.background = element_rect(fill = bg_colour, colour = NA))
+  
+  # Determine map width and height and adjust width if needed
+  # to get a minimum ration of 0.9
+  map_width <- pond_bounds[2] - pond_bounds[1]
+  map_height <- pond_bounds[4] - pond_bounds[3]
+  if(map_width / map_height < 0.9) map_width <- map_height * 0.9
+  
+  # Plot map legends (3 maps wide, 1/2 map tall)
+  (map_legend <- ggplot() +
+      annotate("segment", 
+               x = 0.7 * 1/2 * map_width, 
+               xend = 0.7 * 1/2 * map_width,
+               y = 1/6 * map_height / 2, 
+               yend = 5/6 * map_height / 2,
+               colour = "white",
+               arrow = arrow(),
+               linewidth = 1.5) +
+      annotate("text", 
+               x = 1.2 * 1/2 * map_width, 
+               y = 0.5 * map_height / 2,
+               label = "N", colour = "white",
+               fontface = "bold",
+               size = 20 / .pt) + 
+      annotate("segment", 
+               x =  1.5 * map_width - 5,
+               xend = 1.5 * map_width + 5,
+               y = (0.5 * map_height / 2) * 0.7,
+               yend = (0.5 * map_height / 2) * 0.7,
+               colour = "white",
+               linewidth = 2) +
+      annotate("text",
+               x = 1.5 * map_width, 
+               y = (0.5 * map_height / 2) * 1.3,
+               label = "10 m", colour = "white",
+               size = 14 / .pt) + 
+      annotate("rect", 
+               xmin =  2.5 * map_width - 5,
+               xmax = 2.5 * map_width - 5 + 10/3,
+               ymin =  0.5 * (map_height / 2) - 10/6,
+               ymax = 0.5 * (map_height / 2) + 10/6,
+               fill = "#82C4F5",
+               colour = NA) +
+      annotate("text",
+               x = 2.5 * map_width, 
+               y = 1/2 * map_height / 2,
+               label = "water", colour = "white",
+               hjust = 0,
+               size = 14 / .pt) + 
+      coord_fixed(xlim = c(0, map_width * 3), ylim = c(0, 1/2 * map_height), 
+                  clip = "off") +
+      theme_nothing() +
+      theme(plot.background = element_rect(fill = bg_colour, colour = NA),
+            panel.background = element_rect(fill = bg_colour, colour = NA)))
+  
+  # Plot elevation legend (three maps wide, one map tall)
+  colour_legend <- ggplot() +
+    geom_point(aes(x = 1:15, y = 1:15, fill = rep(c(-0.1, 0, 0.5), 5))) +
+    scale_colour_manual(values = "white",
+                        labels = "pond at start\nof time-series") +
+    scale_fill_continuous_sequential(palette = "inferno", rev = F,
+                                     limits = c(-0.1, 0.5), 
+                                     breaks = seq(-0.1,0.5,0.1),
+                                     oob = scales::squish,
+                                     begin = 0.1,
+                                     end = 0.9,
+                                     labels = c("-0.1", "0.0", "0.1", "0.2", "0.3", "0.4" , "0.5+")
+    ) +
+    guides(fill = guide_colourbar(
+      title = "relative elevation [m]",
+      title.position = "top",
+      title.hjust = 0.5,
+      title.vjust = 0.5,
+      frame.colour = "white",
+      barwidth = unit(2.5, "in")
+    )) +
+    theme(legend.position = "top",
+          legend.key = element_rect(fill = NA, color = NA),
+          legend.background = element_rect(fill = NA),
+          legend.title = element_text(colour = "white", size = 14),
+          legend.text = element_text(colour = "white", size = 14),
+          plot.background = element_rect(fill = bg_colour, colour = NA)) 
+  colour_legend <- ggdraw() +
+    draw_plot(ggplot() + 
+                coord_fixed(xlim = c(0, map_width * 2), ylim = c(0, map_height)) +
+                theme_nothing() +
+                theme(plot.background = element_rect(fill = bg_colour, colour = NA),
+                      panel.background = element_rect(fill = bg_colour, colour = NA))) +
+    draw_grob(get_legend(colour_legend))
+  
+  # put all legends together and return
+  all_legends <- plot_grid(lines_legend,
+                           map_legend,
+                           nrow = 1,
+                           ncol = 2,
+                           rel_widths = c(4,3))
+  return(all_legends)
+}
+
 # Helper function to generate one composite plot for a given pond time series / combination
 composite_plot <- function(combination, 
                            save_plot = TRUE, 
@@ -550,13 +671,16 @@ composite_plot <- function(combination,
     # Prepare output file name
     output_file <- paste0("figures/", site_name, "/individual_ponds/", combination$ts_id, ".png")
     
+    # Get rel heights from global variable (to allow external manipulation)
+    if(!exists(x = "rel_heights", envir = .GlobalEnv)) rel_heights <- c(1,0.5)
+    
     # Generate grid from list and save plot if requested
     if(save_plot){
       plot_grid(plot_grid(plotlist = plot_list,
                           nrow = 2,
                           ncol = length(norm_rasts_site)),
                 legend_manuscript(pond_bounds, bg_colour = "black"),
-                rel_heights = c(1,0.5),
+                rel_heights = rel_heights,
                 nrow = 2,
                 ncol = 1) %>%
         save_plot(output_file,
@@ -581,7 +705,7 @@ composite_plot <- function(combination,
                                       nrow = 2,
                                       ncol = length(norm_rasts_site)),
                             legend_manuscript(pond_bounds),
-                            rel_heights = c(1,0.5),
+                            rel_heights = rel_heights,
                             nrow = 2,
                             ncol = 1))
     }
