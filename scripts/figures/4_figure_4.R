@@ -65,6 +65,11 @@ pond_time_series_ids %>%
     nrow()) / nrow(pond_time_series_ids)) %>%
   round(2)
 
+# overwrite legend function to updated legend
+legend_manuscript <- legend_manuscript2
+# and set rel_heights
+rel_heights <- c(2,1/2)
+
 # Generate time splot for cbh_049
 pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_049"),
                save_plot = F,
@@ -82,10 +87,10 @@ site_col <- c(tlb_col, cbh_col)
 # Update site names for plotting 
 pond_time_series_ids <- mutate(pond_time_series_ids,
                                site_plot = case_when(site == "cbh" ~ "high",
-                                                     site == "tlb" ~ "med",
+                                                     site == "tlb" ~ "medium",
                                                      site == "rdg" ~ "low",
                                                      TRUE ~ site)) %>%
-  mutate(site_plot = factor(site_plot, levels = c("low", "med", "high")))
+  mutate(site_plot = factor(site_plot, levels = c("low", "medium", "high")))
 
 
 
@@ -94,43 +99,55 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
   geom_histogram(aes(x = mean_volume_gain_per_m2, fill = site_plot), 
                  binwidth = 0.025, 
                  colour = "grey20") +
-  geom_segment(aes(x = 0.1, xend = 0.1,
-                   y = -Inf, yend = height),
-               colour = "darkblue",
-               data = pond_time_series_ids %>% 
-                 st_drop_geometry() %>%
-                 group_by(site_plot) %>%
-                 slice(1) %>%
-                 mutate(height = case_when(site_plot == "med" ~ 40,
-                                           site_plot == "high" ~ 90))) +
-  geom_text(aes(x = 0.1, 
-                y = height,
-                label = "detection threshold"), 
-            hjust = - 0.1,
-            vjust = 1,
-            colour = "darkblue",
-            size = 14 / .pt,
-            data = pond_time_series_ids %>% 
-              st_drop_geometry() %>%
-              group_by(site_plot) %>%
-              slice(1) %>%
-              mutate(height = case_when(site_plot == "med" ~ 40,
-                                        site_plot == "high" ~ 90))) +
-  geom_text(aes(x = Inf, y = Inf,
+  annotate("segment", x = 0.1, xend = 0.1,
+           y = -Inf, yend = 150,
+           colour = "darkblue") +
+  annotate("text", 
+           x = 0.1,
+           y = 150,
+           label = "detection threshold\n< 18% (n = 84)",
+           hjust = - 0.1,
+           vjust = 1,
+           colour = "darkblue",
+           size = 14 / .pt) +
+  # geom_segment(aes(x = 0.1, xend = 0.1,
+  #                  y = -Inf, yend = height),
+  #              colour = "darkblue",
+  #              data = pond_time_series_ids %>% 
+  #                st_drop_geometry() %>%
+  #                group_by(site_plot) %>%
+  #                slice(1) %>%
+  #                mutate(height = case_when(site_plot == "med" ~ 40,
+  #                                          site_plot == "high" ~ 90))) +
+  # geom_text(aes(x = 0.1, 
+  #               y = height,
+  #               label = "detection threshold"), 
+  #           hjust = - 0.1,
+  #           vjust = 1,
+  #           colour = "darkblue",
+  #           size = 14 / .pt,
+  #           data = pond_time_series_ids %>% 
+  #             st_drop_geometry() %>%
+  #             group_by(site_plot) %>%
+  #             slice(1) %>%
+  #             mutate(height = case_when(site_plot == "med" ~ 40,
+  #                                       site_plot == "high" ~ 90))) +
+  geom_text(aes(x = 0.2, y = height,
                 label = paste0("Site: ", site_plot),
                 colour = site_plot),
             data = pond_time_series_ids %>%
               st_drop_geometry() %>% 
-              distinct(site_plot),
+              distinct(site_plot) %>%
+              mutate(height = c(65,75)),
             fontface = "bold",
-            hjust = 1.2, vjust = 1.5,
+            hjust = 0, vjust = 1,
             size = 14 / .pt) +
   labs(x = "Volume gained per area lost (m³ / m²)", y = "Number of Ponds") +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
   scale_x_continuous(limits = c(-0.1, 0.4)) +
-  scale_y_continuous(limits = c(0, 100)) +
-  facet_wrap(~site_plot, scales = "free_y") +
+  scale_y_continuous(limits = c(0, 150)) +
+  # facet_wrap(~site_plot, scales = "free_y") +
   theme_cowplot() + 
   theme(legend.position = "none",
         strip.background = element_blank(),
@@ -138,25 +155,44 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
   theme(plot.background = element_rect(fill = "white"),
         panel.background = element_rect(fill = "white"))
 
+# Source surface volume gained plot
+source("scripts/figures/surface_volume_gained.R")
 
 # Composite plot
 plot_grid(
   ggdraw() + 
-            draw_plot(ggplot() + 
-                        theme_nothing() + 
-                        theme(plot.background = element_rect("black"),
-                              panel.background = element_rect("black")),
-                      scale = 0.94) +
-            draw_plot(pond_plot, scale = 0.94), 
-  ggdraw() + draw_plot(volume_gained_hist, scale = 0.94),
-          nrow = 2,
-          ncol = 1,
-          labels = letters[1:2],
-          vjust = 1.6) %>%
+    draw_plot(ggplot() + 
+                theme_nothing() + 
+                theme(plot.background = element_rect("black"),
+                      panel.background = element_rect("black")),
+              scale = 0.94) +
+    draw_plot(pond_plot, scale = 0.94), 
+  ggdraw() + draw_plot(
+    plot_grid(
+      volume_gained_hist,
+      plot_grid(
+        colour_legend,
+        svg_combined_plot, 
+        rel_heights = c(1, 1.5 + 1.5 * 1/3),
+        nrow = 2,
+        labels = c("c", "d"),
+        label_size = 14 * 1 / 0.94,
+        vjust = c(1.8, 1.1),
+        hjust = 1.6),
+      ncol = 2,
+      rel_widths = c(4,3)),
+    scale = 0.94),
+  nrow = 2,
+  ncol = 1,
+  labels = letters[1:2],
+  vjust = c(1.6, 2.6),
+  rel_heights = c(2 + 1/2, 2.5 + 1.5 * 1/3)) %>%
   save_plot("figures/4_figure_4.png",
             .,
             ncol = 1,
-            nrow = 2,
-            base_asp = (7*18.28)/(3*19.12),
+            nrow = 1,
+            base_height = 2 * 3.71,
+            base_asp = (7*(pond_bounds[2]-pond_bounds[1])) /
+              ((2+ 1/2 + 2.5 + 1.5 * 1/3) * (pond_bounds[4]-pond_bounds[3])),
             bg = "white")
 
