@@ -157,7 +157,7 @@ kytalyk_wv_plot <- ggplot() +
   annotate("text",
            x = st_bbox(tlb_poly)[1],
            y = st_bbox(tlb_poly)[4],
-           label = "med",
+           label = "medium",
            fontface = "bold",
            hjust = 0,
            vjust = -0.5,
