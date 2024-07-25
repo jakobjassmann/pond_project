@@ -71,6 +71,11 @@ pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_066"),
                separate_legend = F,
                manuscript_legend = T)
 
+# Pond statistics
+pond_time_series_ids %>% 
+  filter(ts_id == "cbh_066") %>%
+  st_drop_geometry() %>%
+  select(mean_volume_loss_per_m2, mean_volume_gain_per_m2)
 
 # Set side colours
 rdg_col <- "#FFE700"
