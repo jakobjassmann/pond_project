@@ -77,8 +77,16 @@ pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_049"),
                separate_legend = F,
                manuscript_legend = T)
 
+# Pond statistics
+pond_time_series_ids %>% 
+  filter(ts_id == "cbh_049") %>%
+  st_drop_geometry() %>%
+  select(mean_volume_loss_per_m2, mean_volume_gain_per_m2)
 
-# Set side colours
+# Source surface volume gained plot
+source("scripts/figures/surface_volume_gained.R")
+
+# Set site colours
 rdg_col <- "#FFE700"
 cbh_col <- "#FF369D"
 tlb_col <- "#19CEE6"
@@ -100,11 +108,11 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
                  binwidth = 0.025, 
                  colour = "grey20") +
   annotate("segment", x = 0.1, xend = 0.1,
-           y = -Inf, yend = 150,
+           y = -Inf, yend = 110,
            colour = "darkblue") +
   annotate("text", 
            x = 0.1,
-           y = 150,
+           y = 110,
            label = "detection threshold\n< 18% (n = 84)",
            hjust = - 0.1,
            vjust = 1,
@@ -138,14 +146,19 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
             data = pond_time_series_ids %>%
               st_drop_geometry() %>% 
               distinct(site_plot) %>%
-              mutate(height = c(65,75)),
+              mutate(height = c(135,150)),
             fontface = "bold",
             hjust = 0, vjust = 1,
             size = 14 / .pt) +
-  labs(x = "Volume gained per area lost (m³ / m²)", y = "Number of Ponds") +
+  annotate("curve",
+           x = 0.15, y = 25, xend = Inf, yend = 50,
+           arrow = arrow(length = unit(0.03, "npc")),
+           curvature = -0.3,
+  ) +
+  labs(x = "Surface volume gained 2021 vs 2014 (m³ / m²)", y = "Number of Ponds") +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
-  scale_x_continuous(limits = c(-0.1, 0.4)) +
+  # scale_x_continuous(limits = c(-0.1, 0.4)) +
   scale_y_continuous(limits = c(0, 150)) +
   # facet_wrap(~site_plot, scales = "free_y") +
   theme_cowplot() + 
@@ -155,8 +168,7 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
   theme(plot.background = element_rect(fill = "white"),
         panel.background = element_rect(fill = "white"))
 
-# Source surface volume gained plot
-source("scripts/figures/surface_volume_gained.R")
+
 
 # Composite plot
 plot_grid(
@@ -196,3 +208,79 @@ plot_grid(
               ((2+ 1/2 + 2.5 + 1.5 * 1/3) * (pond_bounds[4]-pond_bounds[3])),
             bg = "white")
 
+# Plot histograms for volume gain in each pond time series for each site for 
+# Fig. S4
+(volume_gained_hist_site <- ggplot(pond_time_series_ids) +
+  geom_histogram(aes(x = mean_volume_gain_per_m2, fill = site_plot), 
+                 binwidth = 0.025, 
+                 colour = "grey20") +
+  annotate("segment", x = 0.1, xend = 0.1,
+           y = -Inf, yend = 80,
+           colour = "darkblue") +
+  # annotate("text", 
+  #          x = 0.1,
+  #          y = 110,
+  #          label = "detection threshold\n< 18% (n = 84)",
+  #          hjust = - 0.1,
+  #          vjust = 1,
+  #          colour = "darkblue",
+  #          size = 14 / .pt) +
+  geom_segment(aes(x = 0.1, xend = 0.1,
+                   y = -Inf, yend = height),
+               colour = "darkblue",
+               data = pond_time_series_ids %>%
+                 st_drop_geometry() %>%
+                 group_by(site_plot) %>%
+                 slice(1) %>%
+                 mutate(height = case_when(site_plot == "medium" ~ 100,
+                                           site_plot == "high" ~ 100))) +
+  geom_text(aes(x = 0.1,
+                y = height,
+                label = paste0("detection threshold\n < ", perc, "% (n = ", n, ")"))),
+            hjust = - 0.1,
+            vjust = 1,
+            colour = "darkblue",
+            size = 14 / .pt,
+            data = pond_time_series_ids %>%
+              st_drop_geometry() %>%
+              group_by(site_plot) %>%
+              slice(1) %>%
+              mutate(height = case_when(site_plot == "medium" ~ 100,
+                                        site_plot == "high" ~ 100),
+                     prec = case_when(site_plot == "medium" ~ 39,
+                                        site_plot == "high" ~ 12),
+                     n = case_when(site_plot == "medium" ~ 41,
+                                        site_plot == "high" ~ 43))) +
+  geom_text(aes(x = Inf, y = height,
+                label = paste0("Site: ", site_plot),
+                colour = site_plot),
+            data = pond_time_series_ids %>%
+              st_drop_geometry() %>% 
+              distinct(site_plot) %>%
+              mutate(height = c(150,150)),
+            fontface = "bold",
+            hjust = 1, vjust = 1,
+            size = 14 / .pt) +
+  # annotate("curve",
+  #          x = 0.15, y = 25, xend = Inf, yend = 50,
+  #          arrow = arrow(length = unit(0.03, "npc")),
+  #          curvature = -0.3,
+  # ) +
+  labs(x = "Surface volume gained 2021 vs 2014 (m³ / m²)", y = "Number of Ponds") +
+  scale_colour_manual(values = site_col) +
+  scale_fill_manual(values = site_col) +
+  scale_x_continuous(limits = c(-0.1, 0.4)) +
+  scale_y_continuous(limits = c(0, 150)) +
+  facet_wrap(~site_plot, scales = "free_y") +
+  theme_cowplot() + 
+  theme(legend.position = "none",
+        strip.background = element_blank(),
+        strip.text = element_blank()) +
+  theme(plot.background = element_rect(fill = "white"),
+        panel.background = element_rect(fill = "white")))
+save_plot("figures/6_figure_S4.png", 
+          volume_gained_hist_site,
+          nrow = 1,
+          ncol = 2,
+          base_asp = 1,
+          bg = "white")
