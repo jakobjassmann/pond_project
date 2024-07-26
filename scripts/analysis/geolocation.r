@@ -339,25 +339,29 @@ geolocation_accuracy <- bind_rows(
 geolocation_per_site <- geolocation_accuracy %>%
   mutate(site_year = paste0(site, "_", year)) %>%
   filter(!(site_year %in% c("rdg_2019_b", "rdg_2016"))) %>%
+  mutate(site = case_when(site == "cbh" ~ "high",
+                          site == "tlb" ~ "medium",
+                          site == "rdg" ~ "low")) %>%
   group_by(site) %>%
   group_split() %>%
   lapply(., function(x){
     # Set site colour
     site_col <- case_when(
-      unique(x$site) == "cbh" ~ "#FF369D",
-      unique(x$site) == "tlb" ~ "#19CEE6",
-      unique(x$site) == "rdg" ~ "#FFE700")
+      unique(x$site) == "high" ~ "#FF369D",
+      unique(x$site) == "medium" ~ "#19CEE6",
+      unique(x$site) == "low" ~ "#FFE700")
     site_plot <- ggplot(x, aes(x = year, 
                                y = as.numeric(dist_to_2021_mean), group = site)) +
-      geom_point(colour = site_col) +
+      geom_point(colour = site_col, size = 1.5) +
       geom_errorbar(
         aes(
           ymin = as.numeric(dist_to_2021_min),
           ymax = as.numeric(dist_to_2021_max)
         ),
         width = 0.5,
+        linewidth = 1.5,
         colour = site_col) +
-      geom_line(colour = site_col) +
+      geom_line(colour = site_col, linewidth = 1.5) +
       labs(
         title = unique(x$site),
         x = "",
