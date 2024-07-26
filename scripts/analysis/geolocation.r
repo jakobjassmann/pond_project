@@ -9,6 +9,12 @@ library(tidyverse)
 library(tidyterra)
 library(terra)
 
+# Set side colours
+rdg_col <- "#FFE700"
+cbh_col <- "#FF369D"
+tlb_col <- "#19CEE6"
+site_col <- c(tlb_col, cbh_col)
+
 # Load test point annotations
 cbh_test_points <- st_read("data/drone_data/cbh/cbh_test_points.shp") %>%
     mutate(name = gsub("text", "test", name))
@@ -330,49 +336,51 @@ geolocation_accuracy <- bind_rows(
             )
 
 # Plot the data
-geolocation_per_site <- geolocation_accuracy %>% 
-group_by(site) %>%
-group_split() %>%
-lapply(., function(x){
+geolocation_per_site <- geolocation_accuracy %>%
+  mutate(site_year = paste0(site, "_", year)) %>%
+  filter(!(site_year %in% c("rdg_2019_b", "rdg_2016"))) %>%
+  group_by(site) %>%
+  group_split() %>%
+  lapply(., function(x){
     # Set site colour
     site_col <- case_when(
-        unique(x$site) == "cbh" ~ "#1E1D40",
-        unique(x$site) == "tlb" ~ "#BF625A",
-        unique(x$site) == "rdg" ~ "#F2A922")
+      unique(x$site) == "cbh" ~ "#FF369D",
+      unique(x$site) == "tlb" ~ "#19CEE6",
+      unique(x$site) == "rdg" ~ "#FFE700")
     site_plot <- ggplot(x, aes(x = year, 
-    y = as.numeric(dist_to_2021_mean), group = site)) +
-        geom_point(colour = site_col) +
-        geom_errorbar(
-            aes(
-                ymin = as.numeric(dist_to_2021_min),
-                ymax = as.numeric(dist_to_2021_max)
-            ),
-            width = 0.5,
-            colour = site_col) +
-        geom_line(colour = site_col) +
-            labs(
-                title = unique(x$site),
-                x = "",
-                y = "Distance to 2021 [m]"
-            ) +
-        geom_hline(yintercept = 3 * 0.12, linetype = "dashed") +
-            scale_y_continuous(limits = c(0, 2.5)) +
-            annotate("text", 
-            x = -Inf, 
-            y = 3 * 0.12 + 0.15, 
-            label = "  3x GSD",
-            hjust = 0) +
-            theme_cowplot()
+                               y = as.numeric(dist_to_2021_mean), group = site)) +
+      geom_point(colour = site_col) +
+      geom_errorbar(
+        aes(
+          ymin = as.numeric(dist_to_2021_min),
+          ymax = as.numeric(dist_to_2021_max)
+        ),
+        width = 0.5,
+        colour = site_col) +
+      geom_line(colour = site_col) +
+      labs(
+        title = unique(x$site),
+        x = "",
+        y = "Distance to 2021 [m]"
+      ) +
+      geom_hline(yintercept = 3 * 0.12, linetype = "dashed") +
+      scale_y_continuous(limits = c(0, 2.5)) +
+      annotate("text", 
+               x = -Inf, 
+               y = 3 * 0.12 + 0.15, 
+               label = "  3x GSD",
+               hjust = 0) +
+      theme_cowplot()
     return(site_plot)
-})
+  })
 # Arrange grid and save
 plot_grid(geolocation_per_site[[1]],
-geolocation_per_site[[3]],
-geolocation_per_site[[2]],
- labels = c("a)", "b)", "c)"), nrow = 3, ncol = 1) %>%
-    save_plot("figures/geolocation_accuracy.png", .,
-        base_asp = 1.6,
-        ncol = 1,
+          geolocation_per_site[[3]],
+          geolocation_per_site[[2]],
+          labels = c("a)", "b)", "c)"), nrow = 3, ncol = 1) %>%
+  save_plot("figures/geolocation_accuracy.png", .,
+            base_asp = 1.6,
+            ncol = 1,
         nrow = 3,    
         bg = "white"
     )
