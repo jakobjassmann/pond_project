@@ -236,7 +236,7 @@ plot_grid(
                                            site_plot == "high" ~ 100))) +
   geom_text(aes(x = 0.1,
                 y = height,
-                label = paste0("detection threshold\n < ", perc, "% (n = ", n, ")"))),
+                label = paste0("detection threshold\n < ", perc, "% (n = ", n, ")")),
             hjust = - 0.1,
             vjust = 1,
             colour = "darkblue",
@@ -247,7 +247,7 @@ plot_grid(
               slice(1) %>%
               mutate(height = case_when(site_plot == "medium" ~ 100,
                                         site_plot == "high" ~ 100),
-                     prec = case_when(site_plot == "medium" ~ 39,
+                     perc = case_when(site_plot == "medium" ~ 39,
                                         site_plot == "high" ~ 12),
                      n = case_when(site_plot == "medium" ~ 41,
                                         site_plot == "high" ~ 43))) +
