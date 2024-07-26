@@ -33,8 +33,8 @@ preds_rasts <- list.files("data/drone_data",
 ## Thermokarst plot
 
 # Set pond ID
-pond_id <- "cbh_066"
-site_name <- "cbh"
+pond_id <- "tlb_025"
+site_name <- "tlb"
 
 # Get geometries
 pond_bounds <- pond_time_series_ids %>%
@@ -85,8 +85,8 @@ pond_2014 <- filter(ponds, id == pond_id_2014)
 pond_2021 <- filter(ponds, id == pond_id_2021)
 
 # Find area gained
-area_gained <- st_intersection(pond_2021, pond_2014) %>%
-  st_difference(pond_2021, .)
+area_gained <- st_union(pond_2021, pond_2014) %>%
+  st_difference(., pond_2014)
 
 # Calculate inverse of of area_gained in plotting area
 area_gained_inv <- st_difference(vect(pond_bounds, crs = "EPSG:32655") %>% 
@@ -112,13 +112,13 @@ dsm_plot <- ggplot() +
   coord_sf(xlim = c(st_bbox(pond_bounds)[1],st_bbox(pond_bounds)[3]),
            ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4])) +
   theme_nothing() +
-  theme(panel.border = element_rect(colour = "white", fill=NA))  
+  theme(panel.border = element_rect(colour = "black", fill=NA))  
 
 # Surface volume lost plot
 svl_plot <- dsm_plot +
   geom_sf(data = area_gained_inv,
           colour = NA, 
-          fill = "grey40") +
+          fill = "grey70") +
   geom_sf(data = area_gained, 
           colour = "white", 
           linewidth = 0.5,
@@ -126,48 +126,55 @@ svl_plot <- dsm_plot +
           fill = NA) +
   # constrain to pond bounds
   coord_sf(xlim = c(st_bbox(pond_bounds)[1],st_bbox(pond_bounds)[3]),
-           ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4])) +
-  theme(panel.border = element_rect(colour = "white", fill=NA))  
+           ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4])) 
 
 # Add annotations to dsm plot
 dsm_plot <- dsm_plot +
-  annotate("text", 
-           label = "2014",
-           colour = "white",
-           size = 5,
-           hjust = 0,
-           vjust = 1,
-           fontface = "bold",
-           x = pond_bounds[1] + 0.05 * (pond_bounds[2] - pond_bounds[1]),
-           y = pond_bounds[3] + 0.95 * (pond_bounds[4] - pond_bounds[3])) +
+  # annotate("text", 
+  #          label = "2014",
+  #          colour = "white",
+  #          size = 5,
+  #          hjust = 0,
+  #          vjust = 1,
+  #          fontface = "bold",
+  #          x = pond_bounds[1] + 0.05 * (pond_bounds[2] - pond_bounds[1]),
+  #          y = pond_bounds[3] + 0.95 * (pond_bounds[4] - pond_bounds[3])) +
   annotate("text", 
            label = "Pond\n2014",
            colour = "#82C4F5",
            size = 5,
            hjust = 0,
-           #fontface = "bold",
-           x = pond_bounds[1] + 0.6 * (pond_bounds[2] - pond_bounds[1]),
-           y = pond_bounds[3] + 0.2 * (pond_bounds[4] - pond_bounds[3]))
+           fontface = "bold",
+           x = pond_bounds[1] + 0.075 * (pond_bounds[2] - pond_bounds[1]),
+           y = pond_bounds[3] + 0.275 * (pond_bounds[4] - pond_bounds[3]))
 
 # Add annotations to volume lost plot
 svl_plot <- svl_plot +
+  # annotate("text", 
+  #          label = "Volume lost",
+  #          colour = "white",
+  #          size = 5,
+  #          hjust = 0,
+  #          vjust = 1,
+  #          fontface = "bold",
+  #          x = pond_bounds[1] + 0.05 * (pond_bounds[2] - pond_bounds[1]),
+  #          y = pond_bounds[3] + 0.95 * (pond_bounds[4] - pond_bounds[3])) +
   annotate("text", 
-           label = "Volume lost",
+           label = "Land\narea lost 2021",
            colour = "white",
-           size = 5,
            hjust = 0,
-           vjust = 1,
+           size = 5,
            fontface = "bold",
            x = pond_bounds[1] + 0.05 * (pond_bounds[2] - pond_bounds[1]),
-           y = pond_bounds[3] + 0.95 * (pond_bounds[4] - pond_bounds[3])) +
-  annotate("text", 
-           label = "Area\ngained\n2021",
-           colour = "white",
-           hjust = 0,
+           y = pond_bounds[3] + 0.25 * (pond_bounds[4] - pond_bounds[3])) +
+  annotate("text",
+           label = "Surface\n2014",
+           colour = "#FF4C5D",
+           hjust = 1,
            size = 5,
-           #fontface = "bold",
-           x = pond_bounds[1] + 0.60 * (pond_bounds[2] - pond_bounds[1]),
-           y = pond_bounds[3] + 0.25 * (pond_bounds[4] - pond_bounds[3]))  
+           fontface = "bold",
+           x = pond_bounds[1] + 0.95 * (pond_bounds[2] - pond_bounds[1]),
+           y = pond_bounds[3] + 0.8 * (pond_bounds[4] - pond_bounds[3])) 
 
 # Combine plots into panel
 plot_grid(dsm_plot,
