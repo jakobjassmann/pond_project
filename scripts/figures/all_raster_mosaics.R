@@ -1,4 +1,5 @@
-# Mosaic all rasters
+# Plot mosaics and surface water for all rasters
+# Jakob J. Assmann jakob.assmann@uzh.ch 9 August 2024
 
 # Dependencies
 library(tidyverse)
@@ -55,15 +56,15 @@ plot_raster <- function(rast_file,
                colour = background_colour,
                fill = background_colour,
                linewidth = 2) +
-      annotate("text",
-               x = -Inf,
-               y = - Inf, 
-               label = rast_file %>% 
-                 gsub(".*([0-9]{4}).*", "\\1", .),
-               hjust = -0.25,
-               vjust = -0.75,
-               size = 18 /.pt,
-               colour = "white") +
+      # annotate("text",
+      #          x = -Inf,
+      #          y = - Inf, 
+      #          label = rast_file %>% 
+      #            gsub(".*([0-9]{4}).*", "\\1", .),
+      #          hjust = -0.25,
+      #          vjust = -0.75,
+      #          size = 18 /.pt,
+      #          colour = "white") +
       annotate("text",
                x = (ext(rast_object)[1]+ext(rast_object)[2])/2,
                y =  (ext(rast_object)[3]+ext(rast_object)[4])/2,
@@ -140,57 +141,104 @@ plot_raster <- function(rast_file,
              label = "100 m")
   }
 
-  # Add year
-  rast_plot <- rast_plot  +
-    annotate("text",
-      x = -Inf,
-      y = - Inf, 
-      label = rast_file %>%
-        gsub(".*([0-9]{4}).*\\.tif", "\\1", .),
-      hjust = -0.25,
-      vjust = -0.75,
-      size = 18 / .pt,
-      colour = "white"
-    )
+  # # Add year
+  # rast_plot <- rast_plot  +
+  #   annotate("text",
+  #     x = -Inf,
+  #     y = - Inf, 
+  #     label = rast_file %>%
+  #       gsub(".*([0-9]{4}).*\\.tif", "\\1", .),
+  #     hjust = -0.25,
+  #     vjust = -0.75,
+  #     size = 18 / .pt,
+  #     colour = "white"
+  #   )
   # Return plot
   return(rast_plot)
 }
+
+# Horizontal version
+
+rast_plots <- list(norm_files %>% .[grepl("rdg_2014", .)],
+                   "rdg_2015",
+                   "rdg_2016",
+                   norm_files %>% .[grepl("rdg_2017", .)],
+                   norm_files %>% .[grepl("rdg_2018", .)],
+                   norm_files %>% .[grepl("rdg_2019", .)],
+                   norm_files %>% .[grepl("rdg_2020", .)],
+                   norm_files %>% .[grepl("rdg_2021", .)],
+                   norm_files %>% .[grepl("cbh_2014", .)],
+                   "cbh_2015",
+                   norm_files %>% .[grepl("cbh_2016", .)],
+                   norm_files %>% .[grepl("cbh_2017", .)],
+                   norm_files %>% .[grepl("cbh_2018", .)],
+                   norm_files %>% .[grepl("cbh_2019", .)],
+                   norm_files %>% .[grepl("cbh_2020", .)],
+                   norm_files %>% .[grepl("cbh_2021", .)],
+                   norm_files %>% .[grepl("tlb_2014", .)],
+                   "tlb_2015",
+                   norm_files %>% .[grepl("tlb_2016", .)],
+                   norm_files %>% .[grepl("tlb_2017", .)],
+                   norm_files %>% .[grepl("tlb_2018", .)],
+                   norm_files %>% .[grepl("tlb_2019", .)],
+                   norm_files %>% .[grepl("tlb_2020", .)],
+                   norm_files %>% .[grepl("tlb_2021", .)]) %>%
+  map(plot_raster)
+
+# Make a row of plots with labels for the year to go first. 
+year_label <- map(2014:2021, function(year){
+  ggplot() + 
+    geom_text(aes(x = 0.5, y = 0.5, label = year),
+              size = 18 / .pt,
+              colour = "white") +
+    theme_nothing()
+})
+
+plot_grid(plotlist = c(year_label, rast_plots),
+          ncol = 8, nrow = 4,
+          byrow = TRUE, 
+          rel_heights = c(0.3, 0.965, 1, 0.916)
+          ) %>%
+  save_plot("figures/preds_plot_all.png", .,
+            bg = background_colour,
+            base_asp = 910 / 296,
+            base_height = 3)
 
 #plot_raster(norm_files %>% .[grepl("rdg_2014", .)])
 #plot_raster(norm_files %>% .[grepl("cbh_2014", .)])
 #plot_raster("rdg_2015")
  
-
-rast_plots <- list(norm_files %>% .[grepl("rdg_2014", .)],
-                   "rdg_2016",
-                   norm_files %>% .[grepl("rdg_2018", .)],
-                   norm_files %>% .[grepl("rdg_2020", .)],
-                   "rdg_2015",
-                   norm_files %>% .[grepl("rdg_2017", .)],
-                   norm_files %>% .[grepl("rdg_2019", .)],
-                   norm_files %>% .[grepl("rdg_2021", .)],
-                   norm_files %>% .[grepl("cbh_2014", .)],
-                   norm_files %>% .[grepl("cbh_2016", .)],
-                   norm_files %>% .[grepl("cbh_2018", .)],
-                   norm_files %>% .[grepl("cbh_2020", .)],
-                   "cbh_2015",
-                   norm_files %>% .[grepl("cbh_2017", .)],
-                   norm_files %>% .[grepl("cbh_2019", .)],
-                   norm_files %>% .[grepl("cbh_2021", .)],
-                   norm_files %>% .[grepl("tlb_2014", .)],
-                   norm_files %>% .[grepl("tlb_2016", .)],
-                   norm_files %>% .[grepl("tlb_2018", .)],
-                   norm_files %>% .[grepl("tlb_2020", .)],
-                   "tlb_2015",
-                   norm_files %>% .[grepl("tlb_2017", .)],
-                   norm_files %>% .[grepl("tlb_2019", .)],
-                   norm_files %>% .[grepl("tlb_2021", .)]) %>%
-  map(plot_raster)
-plot_grid(plotlist = rast_plots,
-          ncol = 6, nrow = 4,
-          byrow = FALSE,
-          rel_widths = c(1, 1, 1.313, 1.313, 1.094, 1.094)) %>%
-  save_plot("figures/preds_plot_all.png", .,
-            bg = background_colour,
-            base_asp = 3 / 2,
-            base_height = 6)
+# Vertical version: 
+# rast_plots <- list(norm_files %>% .[grepl("rdg_2014", .)],
+#                    "rdg_2016",
+#                    norm_files %>% .[grepl("rdg_2018", .)],
+#                    norm_files %>% .[grepl("rdg_2020", .)],
+#                    "rdg_2015",
+#                    norm_files %>% .[grepl("rdg_2017", .)],
+#                    norm_files %>% .[grepl("rdg_2019", .)],
+#                    norm_files %>% .[grepl("rdg_2021", .)],
+#                    norm_files %>% .[grepl("cbh_2014", .)],
+#                    norm_files %>% .[grepl("cbh_2016", .)],
+#                    norm_files %>% .[grepl("cbh_2018", .)],
+#                    norm_files %>% .[grepl("cbh_2020", .)],
+#                    "cbh_2015",
+#                    norm_files %>% .[grepl("cbh_2017", .)],
+#                    norm_files %>% .[grepl("cbh_2019", .)],
+#                    norm_files %>% .[grepl("cbh_2021", .)],
+#                    norm_files %>% .[grepl("tlb_2014", .)],
+#                    norm_files %>% .[grepl("tlb_2016", .)],
+#                    norm_files %>% .[grepl("tlb_2018", .)],
+#                    norm_files %>% .[grepl("tlb_2020", .)],
+#                    "tlb_2015",
+#                    norm_files %>% .[grepl("tlb_2017", .)],
+#                    norm_files %>% .[grepl("tlb_2019", .)],
+#                    norm_files %>% .[grepl("tlb_2021", .)]) %>%
+#   map(plot_raster)
+# plot_grid(plotlist = rast_plots,
+#           ncol = 6, nrow = 4,
+#           byrow = FALSE,
+#           rel_widths = c(1, 1, 1.313, 1.313, 1.094, 1.094)) %>%
+#   save_plot("figures/preds_plot_all.png", .,
+#             bg = background_colour,
+#             base_asp = 3 / 2,
+#             base_height = 6)
