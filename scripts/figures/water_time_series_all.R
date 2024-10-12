@@ -191,7 +191,7 @@ water_prop_plot <- ggplot() +
             stroke = 1,
             size = 3,
             alpha = 0.75) +
-  labs(x = "", y = "Surface Water (%)") +
+  labs(x = NULL, y = "Surface Water (%)") +
   scale_colour_manual(values = c("#FF369D", "#FFE700", "#19CEE6")) +
   scale_fill_manual(values = c("#FF369D", "#FFE700", "#19CEE6")) +
   scale_y_continuous(breaks = seq(0,20, 5), limits = c(0,20)) +
@@ -229,7 +229,8 @@ water_prop_plot <- ggplot() +
            hjust = 0,
            size =  14 / .pt) +
   theme_cowplot(16) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.title.x = element_blank())
 save_plot("figures/water_proportion_all.png", 
             water_prop_plot, 
             bg = "white",
