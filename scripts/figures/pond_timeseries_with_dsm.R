@@ -115,6 +115,8 @@ plot_pond_rgb <- function(rgb_rast_file, pond_bounds, pond_sf){
   
   # Add pond outline if available for the year, and constrain plot to bounds
   if(sum(grepl(year, pond_sf$year))) {
+    pond_colour <- "#f9ce5a"
+    if(year == min(pond_sf$year)) pond_colour <- "white"
     pond_plot_rgb <- pond_plot_rgb +
       # geom_sf(data = pond_sf %>% filter(year != 2017) %>%
       #           arrange(year) %>% 
@@ -123,15 +125,30 @@ plot_pond_rgb <- function(rgb_rast_file, pond_bounds, pond_sf){
       #         colour = "white", 
       #         linewidth = 0.5,
       #         alpha = 1,
-      #         fill = NA) +    
+      #         fill = NA) +   
       geom_sf(data = pond_sf[grepl(year, pond_sf$year),], 
-            colour = "#f9ce5a", 
+            colour = pond_colour, 
             linewidth = 0.5,
             alpha = 1,
             fill = NA,
             linetype = "solid") +
     coord_sf(xlim = c(st_bbox(pond_bounds)[1],st_bbox(pond_bounds)[3]),
              ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4]))
+  }
+  
+  # If year is 2014, add surface elevation caption
+  if(year == 2014){
+    # Add year
+    pond_plot_rgb <- pond_plot_rgb + 
+      annotate("text",
+               x = ext(rgb_rast_crop)[1] + (ext(rgb_rast_crop)[2] - ext(rgb_rast_crop)[1]) * 0.05,
+               y = ext(rgb_rast_crop)[3] + (ext(rgb_rast_crop)[4] - ext(rgb_rast_crop)[3]) * 0.1,
+               label = "RGB",
+               colour = "white",
+               fontface = "bold",
+               size = 14 / .pt,
+               hjust = 0,
+               vjust = 0.5)
   }
   
   # Add year
@@ -151,7 +168,11 @@ plot_pond_rgb <- function(rgb_rast_file, pond_bounds, pond_sf){
 }
 
 # Helper function to generate DSM plot
-plot_pond_dsm <- function(preds_file, dsm_file, pond_bounds, pond_sf){
+plot_pond_dsm <- function(preds_file, 
+                          dsm_file, 
+                          pond_bounds, 
+                          pond_sf,
+                          add_transect = FALSE){
   
   # Load preds and dsm
   preds <- rast(preds_file)
@@ -159,6 +180,9 @@ plot_pond_dsm <- function(preds_file, dsm_file, pond_bounds, pond_sf){
   
   # Get site name
   site_name <- gsub(".*/(cbh|tlb)/.*", "\\1", sources(preds))
+  
+  # Get year
+  year <- gsub(".*([0-9]{4}).*", "\\1", sources(dsm))
   
   # Load all preds rasters for standardising the dsm
   preds_all <- preds_rasts[grepl(site_name, preds_rasts)] %>% rast()
@@ -218,6 +242,38 @@ plot_pond_dsm <- function(preds_file, dsm_file, pond_bounds, pond_sf){
     # constrain to pond bounds
     coord_sf(xlim = c(st_bbox(pond_bounds)[1],st_bbox(pond_bounds)[3]),
              ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4])) 
+  
+  # If year is 2014, add surface elevation caption
+  if(year == 2014){
+    # Add year
+    dsm_plot <- dsm_plot + 
+      annotate("text",
+               x = ext(dsm_crop)[1] + (ext(dsm_crop)[2] - ext(dsm_crop)[1]) * 0.05,
+               y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * 0.95,
+               label = "Surface",
+               colour = "white",
+               size = 14 / .pt,
+               fontface = "bold",
+               hjust = 0,
+               vjust = 1) +
+      annotate("text",
+               x = ext(dsm_crop)[1] + (ext(dsm_crop)[2] - ext(dsm_crop)[1]) * 0.05,
+               y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * 0.775,
+               label = "Elevation",
+               colour = "white",
+               size = 14 / .pt,
+               fontface = "bold",
+               hjust = 0,
+               vjust = 1)
+  }
+  
+  # Add transects if requested
+  if(year %in% c(2021) & add_transect){
+    transect <- read_sf(paste0("figures/transect_", combination$ts_id, ".gpkg"))
+    dsm_plot <- dsm_plot +
+      geom_sf(data = transect, colour = "blue",
+              linewidth = 1.5)
+  }
   
   # Return as ggplot object with no margins and a space holder title
   return(dsm_plot)
@@ -311,7 +367,7 @@ legend_dsm <- function(pond_bounds){
                                      labels = c("-0.1", "0", "0.1", "0.2", "0.3", "0.4" , "0.5+")
     ) +
     guides(fill = guide_colourbar(
-      title = "relative elevation [m]",
+      title = "relative surface elevation [m]",
       title.position = "top",
       title.hjust = 0.5,
       title.vjust = 0.5,
@@ -473,7 +529,7 @@ legend_manuscript <- function(pond_bounds, bg_colour = "black"){
                                      labels = c("-0.1", "0.0", "0.1", "0.2", "0.3", "0.4" , "0.5+")
     ) +
     guides(fill = guide_colourbar(
-      title = "relative elevation [m]",
+      title = "relative surface elevation [m]",
       title.position = "top",
       title.hjust = 0.5,
       title.vjust = 0.5,
@@ -509,19 +565,25 @@ legend_manuscript2 <- function(pond_bounds, bg_colour = "black"){
   
   # Plot line legends (4 maps wide, 1/3 maps tall)
   lines_legend <- ggplot() +
-    annotate("segment", x = 10, 
-             xend = 40, y = 1/2 * 100 / 3, 
+    annotate("segment", x = 0, 
+             xend = 20, y = 1/2 * 100 / 3, 
              yend = 1/2 * 100 / 3, 
              colour = "white", linewidth = 2) +
-    annotate("segment", x = 210, xend = 240, 
-             y = 1/2 * 100 / 3, yend = 1/2 * 100 / 3, 
-             colour = "#f9ce5a", linewidth = 2) +
-    annotate("text", x = 50, y = 1/2 * 100 / 3, 
+    annotate("text", x = 30, y = 1/2 * 100 / 3, 
              colour = "white", size = 14 / .pt, hjust = 0,
              label = "pond at start") +
-    annotate("text", x = 250, y = 1/2 * 100 / 3, 
+    annotate("segment", x = 140, xend = 160, 
+             y = 1/2 * 100 / 3, yend = 1/2 * 100 / 3, 
+             colour = "#f9ce5a", linewidth = 2) +
+    annotate("text", x = 170, y = 1/2 * 100 / 3, 
              colour = "white", size = 14 / .pt, hjust = 0,
              label = "pond in given year") +
+    annotate("segment", x = 325, xend = 345, 
+             y = 1/2 * 100 / 3, yend = 1/2 * 100 / 3, 
+             colour = "blue", linewidth = 2) +
+    annotate("text", x = 355, y = 1/2 * 100 / 3, 
+             colour = "white", size = 14 / .pt, hjust = 0,
+             label = "transect") +
     coord_fixed(xlim = c(0,400), ylim = c(0,100/3), 
                 clip = "off") +
     theme_nothing() +
@@ -595,7 +657,7 @@ legend_manuscript2 <- function(pond_bounds, bg_colour = "black"){
                                      labels = c("-0.1", "0.0", "0.1", "0.2", "0.3", "0.4" , "0.5+")
     ) +
     guides(fill = guide_colourbar(
-      title = "relative elevation [m]",
+      title = "relative surface elevation [m]",
       title.position = "top",
       title.hjust = 0.5,
       title.vjust = 0.5,
@@ -630,7 +692,8 @@ composite_plot <- function(combination,
                            save_plot = TRUE, 
                            return_plot = FALSE, 
                            separate_legend = FALSE,
-                           manuscript_legend = FALSE){
+                           manuscript_legend = FALSE,
+                           add_transect = FALSE){
   # get site name
   site_name <- pull(combination, site)
   
@@ -652,7 +715,8 @@ composite_plot <- function(combination,
   rgb_plots <- map(norm_rasts_site, plot_pond_rgb, pond_bounds = pond_bounds, pond_sf = ponds_combination)
   # Generate dsm plots
   dsm_plots <- map2(preds_rasts_site, dsm_rasts_site, plot_pond_dsm, 
-                    pond_bounds = pond_bounds, pond_sf = ponds_combination)
+                    pond_bounds = pond_bounds, pond_sf = ponds_combination,
+                    add_transect = add_transect)
   
   # Check wich legend was requested
   if(manuscript_legend){

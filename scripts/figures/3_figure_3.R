@@ -69,7 +69,8 @@ pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "tlb_025"),
                save_plot = F,
                return_plot = T,
                separate_legend = F,
-               manuscript_legend = T)
+               manuscript_legend = T,
+               add_transect = T)
 
 # Pond statistics
 pond_time_series_ids %>% 
@@ -144,12 +145,12 @@ pond_time_series_ids <- mutate(pond_time_series_ids,
             fontface = "bold",
             hjust = 0, vjust = 1,
             size = 14 / .pt) +
-  annotate("curve",
-      x = 0.39, y = 10, xend = Inf, yend = 100,
-      arrow = arrow(length = unit(0.03, "npc")),
-      curvature = -0.5,
-  ) +
-  labs(x = "Surface volume lost 2014 vs. 2021 (m³ / m²)", y = "Number of Ponds") +
+  # annotate("curve",
+  #     x = 0.39, y = 10, xend = Inf, yend = 100,
+  #     arrow = arrow(length = unit(0.03, "npc")),
+  #     curvature = -0.5,
+  # ) +
+  labs(x = "Mean drop in Surface Elevation (m)\n2014 vs. 2021", y = "Number of Ponds") +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
   # scale_x_continuous(limits = c(-0.05, 0.55)) +
@@ -175,12 +176,12 @@ plot_grid(
     plot_grid(
       volume_lost_hist,
       plot_grid(
+        transect_plot,
         colour_legend,
-        svl_combined_plot, 
-        rel_heights = c(1, 1.5 + 1.5 * 1/3),
+        rel_heights = c(1.5 + 1.5 * 1/3, 1),
         nrow = 2,
-        labels = c("c", "d"),
-        label_size = 14 * 1 / 0.94,
+        labels = c("c", ""),
+        label_size = 18 * 1 / 0.94,
         vjust = c(1.8, 1.1),
         hjust = 1.6),
       ncol = 2,
@@ -189,6 +190,7 @@ plot_grid(
   nrow = 2,
   ncol = 1,
 labels = letters[1:2],
+label_size = 18 * 1,
           vjust = c(1.6, 2.6),
   rel_heights = c(2 + 1/2, 2.5 + 1.5 * 1/3)) %>%
   save_plot("figures/3_figure_3.png",
