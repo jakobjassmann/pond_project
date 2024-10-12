@@ -57,14 +57,14 @@ perc_gt6 <- pond_time_series_ids %>%
   summarise(perc = 100* sum(n_years >= 6) / n()) %>%
   mutate(perc = paste0(" > ", round(perc), "%"))
 
-# Histogram of time-series length fplit by site
+# Histogram of time-series length split by site
 ts_length_hist <- 
   ggplot(pond_time_series_ids) +
   geom_histogram(aes(x = n_years, fill = site_plot),
                  binwidth = 1,
                  colour = "grey20") +
   scale_y_continuous(limits = c(0,200)) +
-  labs(x = "Number of years pond in time-series", y = "Number of Ponds") +
+  labs(x = "Number of years pond was detected", y = "Number of Ponds") +
   geom_segment(x = 5.5, 
                xend = 5.5, 
                y = -Inf, 
