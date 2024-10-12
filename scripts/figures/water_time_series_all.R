@@ -228,7 +228,7 @@ water_prop_plot <- ggplot() +
            colour = "black",
            hjust = 0,
            size =  14 / .pt) +
-  theme_cowplot(16) +
+  theme_cowplot(18) +
   theme(legend.position = "none",
         axis.title.x = element_blank())
 save_plot("figures/water_proportion_all.png", 

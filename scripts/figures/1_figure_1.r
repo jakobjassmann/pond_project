@@ -4,7 +4,7 @@
 # - climate_analaysis.R
 # - all_raster_mosaics.R (to be run separately)
 # - sutdy_site_map_figure.R (to be run separately)
-# Jakob J. Assmann jakobjassmann@gmail.com 20 May 2024
+# Jakob J. Assmann jakob.assmann@uzh.ch 20 May 2024
 
 # Dependencies
 library(tidyverse)
@@ -37,15 +37,10 @@ marings_perc2 <- list(t = 0,
       label_size = 16
     ),
     ggdraw() + draw_image("figures/preds_plot_all.png", scale = 1) +
-      theme(#plot.background = element_rect(fill = "grey25"),
-            plot.margin = margin(marings_perc2, unit = "inch")
-            ),
+      theme(plot.margin = margin(marings_perc2, unit = "inch")),
     nrow = 2,
     labels = c("", "c"),
-    label_size = 16))
-  # +
-  # draw_image("figures/icons/water_proportion.png",
-  # scale = 0.1, x = 0.1, y = 0.42) + 
+    label_size = 24))
   } %>%
   save_plot("figures/1_figure_1.png", 
                    .,
