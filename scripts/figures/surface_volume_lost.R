@@ -331,10 +331,10 @@ transect_plot <- plot_grid(ggplot(transect_values_2014) +
                        fontface = "bold",
                        colour = "white") +
             annotate("text", label = "2014", x = 0, y = Inf,
-                     size = 14 / .pt, hjust = 0, vjust = 3.75,
+                     size = 14 / .pt, hjust = 0, vjust = 3.5,
                      fontface = "bold",
                      colour = "white") +
-            annotate("text", label = "Pond", x = 3, y = -0.11,
+            annotate("text", label = "pond", x = 3, y = -0.11,
                      size = 14 / .pt, colour = "#82c4f5") +
             scale_y_continuous(limits = c(-0.25, 0.5)) +
             scale_colour_continuous_sequential(palette = "inferno", rev = F,
@@ -369,7 +369,7 @@ transect_plot <- plot_grid(ggplot(transect_values_2014) +
                      size = 14 / .pt, hjust = 0, vjust = 1.75,
                      fontface = "bold",
                      colour = "white") +
-            annotate("text", label = "Pond", x = 6, y = -0.11,
+            annotate("text", label = "pond", x = 6, y = -0.11,
                      size = 14 / .pt, colour = "#82c4f5") +
             annotate("errorbar", 
                      x = 6.4, 

@@ -150,7 +150,7 @@ pond_time_series_ids <- mutate(pond_time_series_ids,
   #     arrow = arrow(length = unit(0.03, "npc")),
   #     curvature = -0.5,
   # ) +
-  labs(x = "Mean drop in Surface Elevation (m)\n2014 vs. 2021", y = "Number of Ponds") +
+  labs(x = "Mean drop in surface elevation (m)\n2014 vs. 2021", y = "Number of ponds") +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
   # scale_x_continuous(limits = c(-0.05, 0.55)) +
@@ -182,7 +182,7 @@ plot_grid(
         nrow = 2,
         labels = c("c", ""),
         label_size = 18 * 1 / 0.94,
-        vjust = c(1.8, 1.1),
+        vjust = c(1.1, 1.8),
         hjust = 1.6),
       ncol = 2,
       rel_widths = c(4,3)),
@@ -191,7 +191,7 @@ plot_grid(
   ncol = 1,
 labels = letters[1:2],
 label_size = 18 * 1,
-          vjust = c(1.6, 2.6),
+          vjust = c(1.6, 1.6),
   rel_heights = c(2 + 1/2, 2.5 + 1.5 * 1/3)) %>%
   save_plot("figures/3_figure_3.png",
             .,
