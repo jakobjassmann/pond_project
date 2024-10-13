@@ -172,7 +172,9 @@ plot_pond_dsm <- function(preds_file,
                           dsm_file, 
                           pond_bounds, 
                           pond_sf,
-                          add_transect = FALSE){
+                          combination,
+                          add_transect = FALSE,
+                          add_caption = FALSE){
   
   # Load preds and dsm
   preds <- rast(preds_file)
@@ -244,12 +246,20 @@ plot_pond_dsm <- function(preds_file,
              ylim = c(st_bbox(pond_bounds)[2],st_bbox(pond_bounds)[4])) 
   
   # If year is 2014, add surface elevation caption
-  if(year == 2014){
-    # Add year
+  if(year == 2014 & add_caption == T){
+    # Set height values for labels (top-right corner)
+    y1 <- 0.95
+    y2 <- 0.775
+    # Switch to bottom for certain ponds
+    if(combination$ts_id %in% c("cbh_049")){
+      y1 <- 0.3
+      y2 <- 0.15
+    }
+    # Add caption
     dsm_plot <- dsm_plot + 
       annotate("text",
                x = ext(dsm_crop)[1] + (ext(dsm_crop)[2] - ext(dsm_crop)[1]) * 0.05,
-               y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * 0.95,
+               y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * y1,
                label = "Surface",
                colour = "white",
                size = 14 / .pt,
@@ -258,7 +268,7 @@ plot_pond_dsm <- function(preds_file,
                vjust = 1) +
       annotate("text",
                x = ext(dsm_crop)[1] + (ext(dsm_crop)[2] - ext(dsm_crop)[1]) * 0.05,
-               y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * 0.775,
+               y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * y2,
                label = "Elevation",
                colour = "white",
                size = 14 / .pt,
@@ -693,7 +703,8 @@ composite_plot <- function(combination,
                            return_plot = FALSE, 
                            separate_legend = FALSE,
                            manuscript_legend = FALSE,
-                           add_transect = FALSE){
+                           add_transect = FALSE,
+                           add_caption = FALSE){
   # get site name
   site_name <- pull(combination, site)
   
@@ -716,7 +727,9 @@ composite_plot <- function(combination,
   # Generate dsm plots
   dsm_plots <- map2(preds_rasts_site, dsm_rasts_site, plot_pond_dsm, 
                     pond_bounds = pond_bounds, pond_sf = ponds_combination,
-                    add_transect = add_transect)
+                    combination = combination,
+                    add_transect = add_transect,
+                    add_caption = add_caption)
   
   # Check wich legend was requested
   if(manuscript_legend){

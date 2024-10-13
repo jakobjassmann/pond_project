@@ -12,6 +12,9 @@ library(gt)
 # Load annotated pond-time-series dataset
 load("data/pond_polys/pond_time_series.Rda")
 
+# Source surface volume gained plot
+source("scripts/figures/surface_volume_gained.R")
+
 # Source pond time series plotting functions
 source("scripts/figures/pond_timeseries_with_dsm.R")
 
@@ -75,7 +78,9 @@ pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_049"),
                save_plot = F,
                return_plot = T,
                separate_legend = F,
-               manuscript_legend = T)
+               manuscript_legend = T,
+               add_transect = T,
+               add_caption = T)
 
 # Pond statistics
 pond_time_series_ids %>% 
@@ -83,8 +88,6 @@ pond_time_series_ids %>%
   st_drop_geometry() %>%
   select(mean_volume_loss_per_m2, mean_volume_gain_per_m2)
 
-# Source surface volume gained plot
-source("scripts/figures/surface_volume_gained.R")
 
 # Set site colours
 rdg_col <- "#FFE700"
@@ -150,12 +153,12 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
             fontface = "bold",
             hjust = 0, vjust = 1,
             size = 14 / .pt) +
-  annotate("curve",
-           x = 0.15, y = 25, xend = Inf, yend = 50,
-           arrow = arrow(length = unit(0.03, "npc")),
-           curvature = -0.3,
-  ) +
-  labs(x = "Surface volume gained 2021 vs 2014 (m³ / m²)", y = "Number of Ponds") +
+  # annotate("curve",
+  #          x = 0.15, y = 25, xend = Inf, yend = 50,
+  #          arrow = arrow(length = unit(0.03, "npc")),
+  #          curvature = -0.3,
+  #) +
+  labs(x = "Mean gain in surface elevation (m)\n 2014 vs 2021", y = "Number of Ponds") +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
   # scale_x_continuous(limits = c(-0.1, 0.4)) +
@@ -183,13 +186,13 @@ plot_grid(
     plot_grid(
       volume_gained_hist,
       plot_grid(
+        transect_plot,
         colour_legend,
-        svg_combined_plot, 
-        rel_heights = c(1, 1.5 + 1.5 * 1/3),
+        rel_heights = c(1.5 + 1.5 * 1/3, 1),
         nrow = 2,
-        labels = c("c", "d"),
-        label_size = 14 * 1 / 0.94,
-        vjust = c(1.8, 1.1),
+        labels = c("c", ""),
+        label_size = 18 * 1 / 0.94,
+        vjust = c(1.1, 1.8),
         hjust = 1.6),
       ncol = 2,
       rel_widths = c(4,3)),
@@ -197,7 +200,8 @@ plot_grid(
   nrow = 2,
   ncol = 1,
   labels = letters[1:2],
-  vjust = c(1.6, 2.6),
+  label_size = 18 * 1,
+  vjust = c(1.6, 1.6),
   rel_heights = c(2 + 1/2, 2.5 + 1.5 * 1/3)) %>%
   save_plot("figures/4_figure_4.png",
             .,
