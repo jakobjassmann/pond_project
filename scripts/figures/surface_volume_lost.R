@@ -290,19 +290,27 @@ colour_legend <- ggdraw() +
                                map_legend,
                                rel_heights = c(3,1), nrow = 2))
 
-## Plot cross section
+## Cross section plot
 
-transect_coords <- data.frame(x= c(518010, 518017.5), y = c(7859088.5,7859095.5))
+# Set transect coordinates
+transect_coords <- data.frame(x= c(518010, 518017.5), 
+                              y = c(7859088.5,7859095.5))
+# Convert to sf object and cast to linestring
 transect <- st_as_sf(transect_coords, coords = c("x", "y"), crs = st_crs(dsm_crop_2014)) %>%
   summarise() %>%
   st_cast("LINESTRING")
+# Export to file for time-series plots
 write_sf(transect, paste0("figures/transect_", pond_id, ".gpkg"))
 
-plot(dsm_crop_2014)
-plot(pond_2021, add = T)
-#click(dsm_crop_2014,n = 2, xy = T)
-plot(transect, add = T, col = "red")
+# # Control check of transect (if needed)
+# plot(dsm_crop_2014)
+# plot(pond_2021, add = T)
+# #click(dsm_crop_2014,n = 2, xy = T)
+# plot(transect, add = T, col = "red")
+
+# Extract surface elevation values for the transect in 2014. 
 transect_values_2014 <- extract(dsm_crop_2014, transect, touches = FALSE)
+# Standardise x coordinate based on distance and ad indicator columns
 transect_values_2014 <- data.frame(
   x = rev(1:length(transect_values_2014[,2])) / length(transect_values_2014[,2]),
   y = transect_values_2014[,2]) %>%
@@ -311,7 +319,10 @@ transect_values_2014 <- data.frame(
           y = case_when(is.na(y) ~ 0, 
                        TRUE ~ y),
          x = x * as.numeric(st_length(transect)))
+
+# Extract surface elevation values for the transect in 2021
 transect_values_2021 <- extract(dsm_crop_2021, transect, touches = FALSE)
+# Standardise x coordinate based on distance and ad indicator columns
 transect_values_2021 <- data.frame(
   x = rev(1:length(transect_values_2021[,2])) / length(transect_values_2021[,2]),
   y = transect_values_2021[,2]) %>%
@@ -320,98 +331,91 @@ transect_values_2021 <- data.frame(
          y = case_when(is.na(y) ~ 0, 
                        TRUE ~ y),
          x = x * as.numeric(st_length(transect)))
-transect_plot <- plot_grid(ggplot(transect_values_2014) +
-            geom_line(aes(x = x, y = y, colour = y),
-                      linewidth = 1) +
-            geom_line(aes(x = x, y = y), data = transect_values_2014[!is.na(transect_values_2014$pond),],
-                      colour = "#82c4f5", 
-                      linewidth = 1) +
-            annotate("text", label = "Transect", x = 0, y = Inf,
-                       size = 14 / .pt, hjust = 0, vjust = 1.75,
-                       fontface = "bold",
-                       colour = "white") +
-            annotate("text", label = "2014", x = 0, y = Inf,
-                     size = 14 / .pt, hjust = 0, vjust = 3.5,
-                     fontface = "bold",
-                     colour = "white") +
-            annotate("text", label = "pond", x = 3, y = -0.11,
-                     size = 14 / .pt, colour = "#82c4f5") +
-            scale_y_continuous(limits = c(-0.25, 0.5)) +
-            scale_colour_continuous_sequential(palette = "inferno", rev = F,
-                                               limits = c(-0.1, 0.5), 
-                                               breaks = seq(-0.1,0.5,0.1),
-                                               oob = scales::squish,
-                                               begin = 0.1,
-                                               end = 0.9) +
-            labs(x = NULL,
-                 y = NULL) +
-            theme_nothing() +
-            theme(legend.position = "none",
-                  # axis.line.x  = element_blank(),
-                  # axis.text.x = element_blank(),
-                  # axis.ticks.x = element_blank(),
-                  # axis.title.x = element_blank(),
-                  # axis.title.y = element_text(hjust = -0.11),
-                  plot.background = element_rect(fill = "black")),
-          ggplot(transect_values_2021) +
-            geom_line(aes(x = x, y = y, colour = y),
-                      linewidth = 1) +
-            geom_line(aes(x= x, y = y),
-                      linewidth = 0.5,
-                      colour = "white",
-                      data = transect_values_2014,
-                      linetype = "dashed") + 
-            geom_line(aes(x = x, y = y), 
-                      data = transect_values_2021[!is.na(transect_values_2021$pond),],
-                      colour = "#82c4f5", 
-                      linewidth = 1) +
-            annotate("text", label = "2021", x = 0, y = Inf,
-                     size = 14 / .pt, hjust = 0, vjust = 1.75,
-                     fontface = "bold",
-                     colour = "white") +
-            annotate("text", label = "pond", x = 6, y = -0.11,
-                     size = 14 / .pt, colour = "#82c4f5") +
-            annotate("errorbar", 
-                     x = 6.4, 
-                     ymin = 0.01, 
-                     ymax = mean(transect_values_2014[transect_values_2021$pond,2], na.rm = T) - 0.01,
-                     width = 0.4,
-                     linewidth = 0.75,
-                     color = "white"
-            ) +
-            annotate("text", 
-                     x = 6.4,
-                     y = 0.425,
-                     label = "drop in elevation",
-                     size = 12 /.pt,
-                     colour = "white") +
-            annotate("segment",
-                     x = 6.4, xend = 6.4,
-                     y = 0.35, yend = 0.25, arrow = arrow(length = unit(0.1, "inches")),
-                     linewidth = 0.75,
-                     colour = "white") +
-            # annotate("text", label = "transect", 
-            #          x = 0, y = -0.18,
-            #          size = 12 / .pt, 
-            #          hjust = 0, vjust = 0,
-            #          colour = "white") +
-            # annotate("segment", x = 0, xend = max(transect_values_2021$x),
-            #          y = -0.20, yend = -0.20, 
-            #          colour = "blue", linewidth = 1) +
-            scale_x_continuous(breaks = 0:10) +
-            scale_y_continuous(limits = c(-0.25, 0.5)) +
-            scale_colour_continuous_sequential(palette = "inferno", rev = F,
-                                               limits = c(-0.1, 0.5), 
-                                               breaks = seq(-0.1,0.5,0.1),
-                                               oob = scales::squish,
-                                               begin = 0.1,
-                                               end = 0.9) +
-            labs(x = NULL,
-                 y = NULL) +
-            theme_nothing() +
-            theme(legend.position = "none",
-                  plot.background = element_rect(fill = "black")),
-          nrow= 2
-          #rel_heights = c(208/242,1)
-          )
 
+# Plot transects (this plot will later be added to the composite plot)
+transect_plot <- plot_grid(
+  # 2014 Transect first
+  ggplot(transect_values_2014) +
+    geom_line(aes(x = x, y = y, colour = y),
+              linewidth = 1) +
+    geom_line(aes(x = x, y = y), data = transect_values_2014[!is.na(transect_values_2014$pond),],
+              colour = "#82c4f5", 
+              linewidth = 1) +
+    annotate("text", label = "Transect", x = 0, y = Inf,
+             size = 14 / .pt, hjust = 0, vjust = 1.75,
+             fontface = "bold",
+             colour = "white") +
+    annotate("text", label = "2014", x = 0, y = Inf,
+             size = 14 / .pt, hjust = 0, vjust = 3.5,
+             fontface = "bold",
+             colour = "white") +
+    annotate("text", label = "pond", x = 3, y = -0.11,
+             size = 14 / .pt, colour = "#82c4f5") +
+    scale_y_continuous(limits = c(-0.25, 0.5)) +
+    scale_colour_continuous_sequential(palette = "inferno", rev = F,
+                                       limits = c(-0.1, 0.5), 
+                                       breaks = seq(-0.1,0.5,0.1),
+                                       oob = scales::squish,
+                                       begin = 0.1,
+                                       end = 0.9) +
+    labs(x = NULL,
+         y = NULL) +
+    theme_nothing() +
+    theme(legend.position = "none",
+          plot.background = element_rect(fill = "black")),
+  # 2021 transect
+  ggplot(transect_values_2021) +
+    geom_line(aes(x = x, y = y, colour = y),
+              linewidth = 1) +
+    geom_line(aes(x= x, y = y),
+              linewidth = 0.5,
+              colour = "white",
+              data = transect_values_2014,
+              linetype = "dashed") + 
+    geom_line(aes(x = x, y = y), 
+              data = transect_values_2021[!is.na(transect_values_2021$pond),],
+              colour = "#82c4f5", 
+              linewidth = 1) +
+    annotate("text", label = "2021", x = 0, y = Inf,
+             size = 14 / .pt, hjust = 0, vjust = 1.75,
+             fontface = "bold",
+             colour = "white") +
+    annotate("text", label = "pond", x = 6, y = -0.11,
+             size = 14 / .pt, colour = "#82c4f5") +
+    annotate("errorbar", 
+             x = 6.4, 
+             ymin = 0.01, 
+             ymax = mean(transect_values_2014[transect_values_2021$pond,2], na.rm = T) - 0.01,
+             width = 0.4,
+             linewidth = 0.75,
+             color = "white"
+    ) +
+    annotate("text", 
+             x = 6.4,
+             y = 0.425,
+             label = "drop in elevation",
+             size = 12 /.pt,
+             colour = "white") +
+    annotate("segment",
+             x = 6.4, xend = 6.4,
+             y = 0.35, yend = 0.25, arrow = arrow(length = unit(0.1, "inches")),
+             linewidth = 0.75,
+             colour = "white") +
+    scale_x_continuous(breaks = 0:10) +
+    scale_y_continuous(limits = c(-0.25, 0.5)) +
+    scale_colour_continuous_sequential(palette = "inferno", rev = F,
+                                       limits = c(-0.1, 0.5), 
+                                       breaks = seq(-0.1,0.5,0.1),
+                                       oob = scales::squish,
+                                       begin = 0.1,
+                                       end = 0.9) +
+    labs(x = NULL,
+         y = NULL) +
+    theme_nothing() +
+    theme(legend.position = "none",
+          plot.background = element_rect(fill = "black")),
+  nrow= 2
+)
+
+
+## End of script

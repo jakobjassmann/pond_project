@@ -12,6 +12,9 @@ library(gt)
 # Load annotated pond-time-series dataset
 load("data/pond_polys/pond_time_series.Rda")
 
+# Source surface volume lost plot
+source("scripts/figures/surface_volume_lost.R")
+
 # Source pond time series plotting functions
 source("scripts/figures/pond_timeseries_with_dsm.R")
 
@@ -77,9 +80,6 @@ pond_time_series_ids %>%
   filter(ts_id == "tlb_025") %>%
   st_drop_geometry() %>%
   select(mean_volume_loss_per_m2, mean_volume_gain_per_m2)
-
-# Source surface volume lost plot
-source("scripts/figures/surface_volume_lost.R")
 
 # Set side colours
 rdg_col <- "#FFE700"
