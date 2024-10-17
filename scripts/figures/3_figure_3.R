@@ -12,12 +12,6 @@ library(gt)
 # Load annotated pond-time-series dataset
 load("data/pond_polys/pond_time_series.Rda")
 
-# Source surface volume lost plot
-source("scripts/figures/surface_volume_lost.R")
-
-# Source pond time series plotting functions
-source("scripts/figures/pond_timeseries_with_dsm.R")
-
 # Override buggy cowplot::get_legend if needed
 get_legend <- function(plot){
   legends <- get_plot_component(plot, "guide-box", return_all = T)
@@ -40,6 +34,12 @@ get_legend <- function(plot){
          size = guide_legend(position = "top"))
 ggdraw() + draw_grob(get_legend(test_plot))
 get_legend(ggplot())
+
+# Source surface volume lost plot
+source("scripts/figures/surface_volume_lost.R")
+
+# Source pond time series plotting functions
+source("scripts/figures/pond_timeseries_with_dsm.R")
 
 # Calculate summary stats for pond change
 # Number of ponds where thermokarst was detected

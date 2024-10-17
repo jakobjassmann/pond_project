@@ -333,7 +333,7 @@ transect_values_2021 <- data.frame(
          x = x * as.numeric(st_length(transect)))
 
 # Plot transects (this plot will later be added to the composite plot)
-transect_plot <- plot_grid(
+(transect_plot <- plot_grid(
   # 2014 Transect first
   ggplot(transect_values_2014) +
     geom_line(aes(x = x, y = y, colour = y),
@@ -392,13 +392,16 @@ transect_plot <- plot_grid(
     ) +
     annotate("text", 
              x = 6.4,
-             y = 0.425,
-             label = "drop in elevation",
+             y = 0.45,
+             hjust = 0.32,
+             label = paste0("drop in elevation", " (",
+                            round(mean(transect_values_2014[transect_values_2021$pond,2], na.rm = T), 2), 
+                            " m)"),
              size = 12 /.pt,
              colour = "white") +
     annotate("segment",
              x = 6.4, xend = 6.4,
-             y = 0.35, yend = 0.25, arrow = arrow(length = unit(0.1, "inches")),
+             y = 0.375, yend = 0.25, arrow = arrow(length = unit(0.1, "inches")),
              linewidth = 0.75,
              colour = "white") +
     scale_x_continuous(breaks = 0:10) +
@@ -415,7 +418,7 @@ transect_plot <- plot_grid(
     theme(legend.position = "none",
           plot.background = element_rect(fill = "black")),
   nrow= 2
-)
+))
 
 
 ## End of script

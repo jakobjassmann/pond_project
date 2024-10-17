@@ -399,7 +399,10 @@ transect_values_2021 <- data.frame(
     annotate("text", 
              x = 5,
              y = 0.425,
-             label = "gain in elevation",
+             hjust = 0.31,
+             label = paste0("gain in elevation",
+                            " (", round(max(transect_values_2021[transect_values_2014$pond,2], na.rm = T),2),
+                            " m)"),
              size = 12 /.pt,
              colour = "white") +
     annotate("segment",
