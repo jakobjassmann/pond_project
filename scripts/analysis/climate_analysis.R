@@ -159,10 +159,10 @@ climate_study <- ggplot(climate_data %>%
          filter(year >= 2014), aes(x = year, y = temp_jja_mean, group = 1)) +
     geom_col(aes(x = year, y = precip_son_sum / 10),
            colour = NA,
-           fill = "grey50",
+           fill = "#0028A5AA",
            width = 0.6) +
            geom_line(aes(x = year, y = temp_jja_mean, group = 1),
-            colour = "black",
+            colour = "#FF0000",
             size = 2) +
   scale_y_continuous(name = "Summer Temperature (°C)",
                     limits = c(0, 15),
@@ -174,13 +174,13 @@ climate_study <- ggplot(climate_data %>%
   #  size = 5) +
   theme_cowplot(16) + 
   theme(axis.ticks.y.left = element_line(colour = "black"),
-        axis.ticks.y.right = element_line(colour = "grey50"),
+        axis.ticks.y.right = element_line(colour = "black"), #grey50
         axis.line.y.left = element_line(colour = "black"),
-        axis.line.y.right = element_line(colour = "grey50"),
+        axis.line.y.right = element_line(colour = "black"),
         axis.text.y.left = element_text(colour = "black"),
-        axis.text.y.right = element_text(colour = "grey50"),
+        axis.text.y.right = element_text(colour = "black"),
         axis.title.y.left = element_text(angle = 90, colour = "black"),
-        axis.title.y.right = element_text(angle = 90, colour = "grey50"),
+        axis.title.y.right = element_text(angle = 90, colour = "black"),
         axis.title.x = element_blank())
 save_plot("figures/climate_study.png",
           climate_study,
