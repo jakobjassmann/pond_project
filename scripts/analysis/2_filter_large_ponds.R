@@ -207,8 +207,8 @@ pond_time_series_ids <- preds_rasters_meta %>%
     meta_sub %>% 
       pull(file) %>% 
       rast() %>% 
-      # Composite rasters where wtare was detected in any one of the years
-      app(., any) %>%
+      # Composite rasters where water was detected in any one of the years
+      app(., any, na.rm = T) %>%
       # Get polygons using helper function
       get_pond_polys(., site = unique(meta_sub$site)) %>%
       # Keep only ponds larger than 1 m2
@@ -238,7 +238,7 @@ pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>%
 
 # Calculate number of intersections large than one
 sum(pond_time_series_ids$n_intersects > 1) 
-# The problem is indeed the case for 178 of the identified ponds.
+# The problem is indeed the case for 158 of the identified ponds.
 
 # Split tibble and treat ponds with intersections separately
 pond_time_series_ids_unique <- pond_time_series_ids %>%
@@ -290,22 +290,12 @@ pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>%
 # Calculate number of intersections large than one
 sum(pond_time_series_ids$n_intersects > 1) 
 
-# 6 remain! look at those
+# 2 remain! look at those
 pond_time_series_ids[which(pond_time_series_ids$n_intersects > 1),]
 
 # Manuall merge those
 pond_time_series_ids <- bind_rows(
-  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_006", "cbh_007")), 
-            area = sum(area),
-            site = unique(site),
-            year = unique(year),
-            ts_id = ts_id[1]),
-  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_536", "cbh_539")), 
-            area = sum(area),
-            site = unique(site),
-            year = unique(year),
-            ts_id = ts_id[1]),
-  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_585", "cbh_598")), 
+  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_631", "cbh_635")), 
             area = sum(area),
             site = unique(site),
             year = unique(year),
