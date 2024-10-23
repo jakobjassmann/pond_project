@@ -205,9 +205,7 @@ get_volume_diff <- function(combination){
                 mean_total_change_per_m2 = total_volume_change / as.numeric(combination$area))) # max(volume_loss_per_year$volume_loss))
 }
 
-# plot(dsm_crop_start)
-# plot(st_geometry(combination), add = T)
-# plot(ponds_union, add = T)
+# Test volume difference function for one pond
 get_volume_diff(pond_time_series_ids %>% filter(ts_id == "cbh_009"))
 
 # Get volume difference for all combinations
