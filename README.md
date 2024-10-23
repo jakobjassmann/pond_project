@@ -60,8 +60,9 @@ We recommend to run the scripts in the sequence as listed below.
 - `scripts/analysis/1_predict_water.R` to generate the water masks.
 - `scripts/analysis/2_filter_large_ponds.R` to filter out all ponds < 1m2 and assign ponds to time-series.
 - `scripts/analysis/3_pond_time_series_analysis.R` for the analyses of individual pond change.
-- `scripts/analysis/4_climate_analysis.R` for all climate analyses (supplementary materials).
-- `scripts/analysis/5_geolcoation.R` for the analysis of geolocation accouracy (supplementary materials).
+- `scripts/analysis/4_water_time_series_all.R` generate water proportion timeseries for the site and associated analysis.
+- `scripts/analysis/5_climate_analysis.R` for all climate analyses (supplementary materials).
+- `scripts/analysis/6_geolcoation.R` for the analysis of geolocation accouracy (supplementary materials).
 
 **Figures / Tables**<br><br>
 All figures in the main manuscript are generated using individual scripts named accordingly.<br><br>
