@@ -67,8 +67,8 @@ legend_manuscript <- legend_manuscript2
 # and set rel_heights
 rel_heights <- c(2,1/2)
 
-# Generate time series plot for cbh_049
-pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "tlb_025"),
+# Generate time series plot for tlb_027
+pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "tlb_027"),
                save_plot = F,
                return_plot = T,
                separate_legend = F,
@@ -77,7 +77,7 @@ pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "tlb_025"),
 
 # Pond statistics
 pond_time_series_ids %>% 
-  filter(ts_id == "tlb_025") %>%
+  filter(ts_id == "tlb_027") %>%
   st_drop_geometry() %>%
   select(mean_volume_loss_per_m2, mean_volume_gain_per_m2)
 
