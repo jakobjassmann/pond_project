@@ -238,7 +238,7 @@ pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>%
 
 # Calculate number of intersections large than one
 sum(pond_time_series_ids$n_intersects > 1) 
-# The problem is indeed the case for 9 of the identified ponds.
+# The problem is indeed the case for 178 of the identified ponds.
 
 # Split tibble and treat ponds with intersections separately
 pond_time_series_ids_unique <- pond_time_series_ids %>%
@@ -290,18 +290,41 @@ pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>%
 # Calculate number of intersections large than one
 sum(pond_time_series_ids$n_intersects > 1) 
 
-# 2 remain! look at those
+# 6 remain! look at those
 pond_time_series_ids[which(pond_time_series_ids$n_intersects > 1),]
 
 # Manuall merge those
 pond_time_series_ids <- bind_rows(
-  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_631", "cbh_635")), 
+  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_006", "cbh_007")), 
+            area = sum(area),
+            site = unique(site),
+            year = unique(year),
+            ts_id = ts_id[1]),
+  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_536", "cbh_539")), 
+            area = sum(area),
+            site = unique(site),
+            year = unique(year),
+            ts_id = ts_id[1]),
+  summarise(filter(pond_time_series_ids, ts_id %in% c("cbh_585", "cbh_598")), 
             area = sum(area),
             site = unique(site),
             year = unique(year),
             ts_id = ts_id[1]),
   pond_time_series_ids[which(pond_time_series_ids$n_intersects == 1),]) %>%
   arrange(ts_id)
+
+# Double check: 
+# Get self-intersections
+pond_time_series_ids <- pond_time_series_ids %>%
+  mutate(., intersects = st_intersects(.) %>% map(function(x) x))
+
+# Calculate number of intersections per polygon
+pond_time_series_ids$n_intersects <- pond_time_series_ids$intersects %>% 
+  map(function(x) length(x)) %>% unlist()
+
+# Calculate number of intersections large than one
+sum(pond_time_series_ids$n_intersects > 1) 
+# -> Done!
 
 # Clean up colums
 pond_time_series_ids <- select(pond_time_series_ids,
