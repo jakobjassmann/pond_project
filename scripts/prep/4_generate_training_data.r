@@ -93,5 +93,31 @@ training_all <- arrange(training_all, class)
 training_all$class <- as.factor(training_all$class)
 training_all$row_id <- 1:nrow(training_all)
 
+# Summary stats
+training_all %>% group_by(site, class) %>%
+  summarise(n())
+
 # Save training data
 write_csv(training_all, file = "data/training_data/training_all_df.csv")
+
+# Generate summary tables for supplementary materials
+# Polygon summaries 
+bind_rows(cbh_polys %>% st_drop_geometry() %>% group_by(year, class) %>% 
+  summarise(n()) %>% pivot_wider(names_from = class, values_from = `n()`) %>%
+  mutate(Site = "high", `Mosaic ID` = paste0("cbh", "_", year)) %>% 
+    ungroup() %>% select(-year) %>% relocate(Site, `Mosaic ID`),
+tlb_polys %>% st_drop_geometry() %>% group_by(year, class) %>% 
+  summarise(n()) %>% pivot_wider(names_from = class, values_from = `n()`) %>%
+  mutate(Site = "medium", `Mosaic ID` = paste0("tlb", "_", year)) %>% 
+  ungroup() %>% select(-year) %>% relocate(Site, `Mosaic ID`),
+rdg_polys %>% st_drop_geometry() %>% group_by(year, class) %>%
+  summarise(n()) %>% pivot_wider(names_from = class, values_from = `n()`) %>%
+  mutate(Site = "low", `Mosaic ID` = paste0("rdg", "_", year)) %>% 
+  ungroup() %>% select(-year) %>% relocate(Site, `Mosaic ID`)) %>%
+  full_join(
+training_all %>% mutate(`Mosaic ID` = paste0(site, "_", year)) %>%
+  group_by(`Mosaic ID`, class) %>%
+  tally() %>%
+  pivot_wider(names_from = class, values_from = n) %>%
+  rename(other_n = other, water_n = water) ) %>% 
+  write_csv("tables/training_annotations.csv")

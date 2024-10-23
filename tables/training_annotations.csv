@@ -1,0 +1,24 @@
+Site,Mosaic ID,other,water,other_n,water_n
+high,cbh_2014_byte,25,17,244909,47958
+high,cbh_2016,10,9,137182,30952
+high,cbh_2017,6,9,63151,61465
+high,cbh_2018,10,8,197400,22509
+high,cbh_2019,7,7,172343,30762
+high,cbh_2019_b,9,7,147093,13077
+high,cbh_2020,6,6,90717,12944
+high,cbh_2021,7,7,159549,24018
+medium,tlb_2014,6,7,86887,22983
+medium,tlb_2016,6,7,146462,12715
+medium,tlb_2017,6,6,97944,27373
+medium,tlb_2018,8,6,122126,10428
+medium,tlb_2019_a,10,8,203771,16344
+medium,tlb_2019_b,7,7,128885,26310
+medium,tlb_2019_c,6,5,101922,23957
+medium,tlb_2020,6,6,72247,19986
+medium,tlb_2021,7,6,201113,16151
+low,rdg_2014,6,NA,598757,NA
+low,rdg_2017_b,6,1,522567,1160
+low,rdg_2018,6,NA,645656,NA
+low,rdg_2019_a,6,NA,464478,NA
+low,rdg_2020,6,NA,307134,NA
+low,rdg_2021,6,NA,503990,NA

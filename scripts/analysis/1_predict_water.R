@@ -8,19 +8,23 @@ library(caret)
 library(randomForest)
 library(ggplot2)
 library(cowplot)
-library(spatialEco)
 library(dplyr)
 library(purrr)
 library(parallel)
 library(pbapply)
 
+## Prepare training data
 
 # Load training data
 training <- read_csv("data/training_data/training_all_df.csv")
 
-## Simple BCC threshold
-# Plot distribution of BCC
-# (estimated threshold 5% percentile of water class)
+# Check whether class is a factor (if not adjust)
+if(!is.factor(training$class)) training$class <- factor(training$class, 
+                                                        levels = c("other", "water"))
+levels(training$class)
+
+## Test simple BCC threshold (running not required for remainder of script)
+# Plot distribution of BCC & estimated threshold 5% percentile of water class
 ggplot(training) +
   geom_histogram(aes(x= bcc)) +
   theme_cowplot()
@@ -40,10 +44,8 @@ ggplot(training %>% mutate(site_year = paste0(site, "_", year))) +
   theme_cowplot()
 # -> a global threshold will not work well!!
 
-# Check whether class is a factor (if not adjust)
-if(!is.factor(training$class)) training$class <- factor(training$class, 
-                                                        levels = c("other", "water"))
-levels(training$class)
+
+## Identifiy BCC threshold values
 
 # Generate vector of thresholds values to be tested
 threshold_vals <- seq(0,1,0.01)
@@ -54,17 +56,22 @@ training_tlb <- filter(training, site == "tlb")
 training_rdg <- filter(training, site == "rdg")
 
 # Helper function to generate predictions for a set of thresholds
-gen_preds_thres <- function(threshold_val, training_data = training) {
+gen_preds_thres <- function(threshold_val, training_data = training, cv = FALSE) {
+  # Predictions based on threshold using ALL data
   preds <- data.frame(
     threshold_val = threshold_val,
     class = training_data$bcc >= threshold_val
   ) %>%
+    # Label classes
     mutate(class = factor(case_when(class == 1 ~ "water",
                                     class == 0 ~ "other"), 
                           levels = c("other", "water")))
   
+  # Determine confusion matrix
   cf_matrix <- confusionMatrix(preds$class, training_data$class, positive = "water")
-  data.frame(
+  
+  # Format results
+  results <- data.frame(
     threshold = threshold_val, 
     acc = cf_matrix$overall["Accuracy"],
     fpr = 1 - cf_matrix$byClass["Specificity"],
@@ -72,64 +79,146 @@ gen_preds_thres <- function(threshold_val, training_data = training) {
     spec = cf_matrix$byClass["Specificity"],
     sens_spec = cf_matrix$byClass["Specificity"] + cf_matrix$byClass["Sensitivity"]
   )
+  
+  # If there is only rdg data (not enought water obs) do not continue
+  if(all(training_data$site == "rdg")) return(results)
+  
+  # For all other sites - check whether to run CV?
+  if(!cv) return(results)
+
+  # Subsample 10k pixels and assign 8-fold split (1250 pixels per group)
+  training_cv <- training_data %>%
+    group_by(class) %>%
+    sample_n(10000) %>%
+    mutate(., k = sample(rep(1:8, 1250),10000))
+  
+  # Generate predictions and validate for k-subsets (leave one)
+  cv_res <- lapply(1:5, function(k_current){
+    # Get subset
+    training_k <- filter(training_cv,  k != k_current)
+    # Run predictions on subset
+    preds <- data.frame(
+      threshold_val = threshold_val,
+      class = training_k$bcc >= threshold_val
+    ) %>%
+      # Label classes
+      mutate(class = factor(case_when(class == 1 ~ "water",
+                                      class == 0 ~ "other"), 
+                            levels = c("other", "water")))
+    # Determine accuracy, sensitivity and specificity
+    acc <- sum(preds$class == training_k$class) / length(training_k$class)
+    sens <- sum((preds$class == training_k$class)[training_k$class == "water"]) /
+      sum(training_k$class == "water")
+    spec <- sum((preds$class == training_k$class)[training_k$class == "other"]) /
+      sum(training_k$class == "other")
+    # Return acc
+    return(data.frame(acc = acc,
+                      sens = sens,
+                      spec = spec))
+  }) %>% bind_rows()
+  
+  # Add cv stat to output
+  results <- results %>% mutate(
+    k_cv = 8,
+    acc_cv_mean = mean(cv_res$acc),
+    acc_cv_se = sd(cv_res$acc) / 8,
+    acc_cv_sens = mean(cv_res$sens),
+    acc_cv_spec = mean(cv_res$spec)
+  )
+  
+  # Return results
+  return(results)
 }
 
-## Generate predictions for range of thresholds 
+# Prepare parallel environment (windows)
+cl <- makeCluster(15)
+clusterEvalQ(cl, {
+  library("caret")
+  library("dplyr")
+  library("terra")})
+clusterEvalQ(cl, set.seed(45))
 
-# Generate predictions - global threshold
+## Generate predictions for the whole range of thresholds 
+
+# Generate predictions - global threshold identification
 threshold_preds_all <- pblapply(threshold_vals, 
-                                gen_preds_thres, 
-                                cl = 31) %>% 
+                                gen_preds_thres,
+                                training_data = training,
+                                cl = cl) %>% 
   bind_rows()
 
-# Generate predictions - cbh threshold 
+# Generate predictions - cbh site-specific threshold identification
 threshold_preds_cbh <- pblapply(threshold_vals, 
                                 gen_preds_thres, 
                                 training_data = training_cbh, 
-                                cl = 31) %>% 
+                                cl = cl) %>% 
   bind_rows()
 
-# Generate predictions - tlb threshold 
-threshold_preds_tlb <- pblapply(threshold_vals, gen_preds_thres, training_data = training_tlb, cl = 31) %>% bind_rows()
+# Generate predictions - tlb site-specific threshold identification
+threshold_preds_tlb <- pblapply(threshold_vals,
+                                gen_preds_thres,
+                                training_data = training_tlb,
+                                cl = 31) %>% bind_rows()
 
-# Generate predictions - rdg threshold 
-threshold_preds_rdg <- pblapply(threshold_vals, gen_preds_thres, training_data = training_rdg, cl = 31) %>% bind_rows()
+# Generate predictions - rdg site-specific threshold identification
+threshold_preds_rdg <- pblapply(threshold_vals,
+                                gen_preds_thres,
+                                training_data = training_rdg,
+                                cl = 31) %>% bind_rows()
 
-# Generate predictions - each raster individually
+# Generate predictions - raster-specific threshold identification
 thresholds_site <- training %>% 
+  # filter(site == "tlb" & year == "2016") %>%
+  # Add site-year identifier to training data
   mutate(site_year = paste0(site,"_",year)) %>%
+  # Apply across each site-year combination
   split(., .$site_year) %>%
   lapply(function(training_data_site){
+    # Status
     cat("Generating predictions for", unique(training_data_site$site_year), "\n")
+    # If no water training data (rdg site) are available, set threshold to 1
     if(nrow(training_data_site %>% filter(class == "water")) == 0) threshold_vals <- 1
-    pblapply(threshold_vals, gen_preds_thres, training_data = training_data_site, cl = 31) %>% 
+    # Else generate predictions for each threshold, including "n-fold" validation
+    training_all <- pblapply(threshold_vals, 
+                             gen_preds_thres, 
+                             training_data = training_data_site,
+                             cv = TRUE,
+                             cl = cl) %>% 
       bind_rows() %>%
+      # add site year identifier
       mutate(site_year = unique(training_data_site$site_year))
+    # Return results
+    return(training_all)
   }) %>% 
-  bind_rows() %>%
-  na.omit()
+  bind_rows() 
 
-## Assess performance
-# Get threshold with highest accuracy
+## Choose threshold based on maximum sensitivity + specificity
+
+# Get threshold with highest accuracy using all data
 best_thresh_all <- threshold_preds_all[threshold_preds_all$acc == max(threshold_preds_all$acc),][1,] 
+
+# Get threshold with highest accuracy for each site
 best_thresh_cbh <- threshold_preds_cbh[threshold_preds_cbh$acc == max(threshold_preds_cbh$acc),][1,] %>% mutate (site = "cbh")
 best_thresh_tlb <- threshold_preds_tlb[threshold_preds_tlb$acc == max(threshold_preds_tlb$acc),][1,] %>% mutate (site = "tlb")
 best_thresh_rdg <-  threshold_preds_rdg[threshold_preds_rdg$acc == max(threshold_preds_rdg$acc),][1,] %>% mutate (site = "rdg")
+
+# Get threshold with highest accuracy for each raster (site-year combination)
 best_thresh_site_year <- thresholds_site %>%
   split(., .$site_year) %>%
   lapply(., function(x){ 
+    if(grepl("rdg", unique(x$site_year)) & unique(x$site_year) != "rdg_2017_b") return(x)
+    if(unique(x$site_year) == "rdg_2017_b") return(x[x$acc == max(x$acc),][1,])
+    # Flag values where max acc does not match max acc_cv_mean
+    if(x$threshold[x$acc == max(x$acc)] != x$threshold[x$acc_cv_mean == max(x$acc_cv_mean)]){
+      warning(paste0("Thresholds ",  
+                     x$threshold[x$acc == max(x$acc)], " (max acc - all) and ",
+                     x$threshold[x$acc_cv_mean == max(x$acc_cv_mean)], " (max mean_acc - cv) ",
+                     "do not match for ", unique(x$site_year), "!"))
+    }
+    # Get max sens_spec threshold value for predictions
     x[x$acc == max(x$acc),][1,]
   }) %>%
   bind_rows()
-best_thresh_site_year <- bind_rows(
-  best_thresh_site_year,
-  training %>% 
-    mutate(site_year = paste0(site,"_",year)) %>%
-    distinct(site_year) %>%
-    filter(grepl("rdg", site_year)) %>%
-    filter(!grepl("2017", site_year)) %>%
-    mutate(threshold = 1)
-) %>% arrange(site_year)
 
 ## Plot distributions and thresholds
 # Global threshold
@@ -140,7 +229,7 @@ ggplot(training) +
             data = best_thresh_all) +
   facet_wrap(vars(site)) +
   theme_cowplot()
-# Does not worke well -> as expected
+# Does not work well -> as expected
 
 # Site specific threshold
 ggplot(training) +
@@ -150,7 +239,7 @@ ggplot(training) +
             data = bind_rows(best_thresh_cbh, best_thresh_rdg, best_thresh_tlb)) +
   facet_wrap(vars(site)) +
   theme_cowplot()
-# Loks better but not great either 
+# Looks a kit better but not great either 
 
 # Site-year specific threshold
 (bcc_norm_with_thresh_plot <- ggplot(training %>% mutate(site_year = paste0(site,"_", year))) +
@@ -184,9 +273,14 @@ best_thresh_site_year %>%
   mutate(site = gsub(".*(cbh|tlb|rdg).*", "\\1", site_year),
          year = gsub(".*[a-z]{3}_([0-9]{4}.*)", "\\1", site_year)) %>%
   select(-site_year) %>%
-  mutate(across(threshold:sens_spec, ~ round(.x, 2))) %>%
+  mutate(across(threshold:sens_spec, ~ round(.x, 2)),
+         across(acc_cv_mean, ~ round(.x, 3)),
+         across(acc_cv_se, ~ round(.x, 5)),
+         across(acc_cv_sens:acc_cv_spec, ~ round(.x, 3))) %>%
   remove_rownames() %>%
   write_csv("tables/bcc_thersholds_site.csv")
+
+# Test sensitivity of threshold to sample size. 
 
 ## Generate projections based on threshold
 
@@ -203,6 +297,7 @@ dir.create("data/drone_data/tlb/preds/")
 dir.create("data/drone_data/rdg/preds/")
 
 # Generate prediction rasters
+clusterExport(cl, varlist = "best_thresh_site_year")
 pblapply(raster_files_bcc, function(rast_file) {
   year_interest <- gsub(".*/[a-z]{3}_([0-9]{4}.*)\\.tif", "\\1", rast_file)
   site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", rast_file)
@@ -242,4 +337,7 @@ pblapply(raster_files_bcc, function(rast_file) {
   )
   cat(year_interest, "done.\n")
   return(NULL)
-}, cl = 31)
+}, cl = cl)
+
+# Stop cluster
+stopCluster(cl)
