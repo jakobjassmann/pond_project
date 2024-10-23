@@ -215,11 +215,10 @@ pond_time_series_ids <- pond_time_series_ids %>%
   bind_rows() %>%
   full_join(pond_time_series_ids, .)
 
-
+# Update NA values in mean volume loss / gain columns
 pond_time_series_ids <- pond_time_series_ids %>%
   mutate(mean_volume_loss_per_m2 = case_when(is.nan(mean_volume_loss_per_m2) ~0,
                                              TRUE ~mean_volume_loss_per_m2))
-
 pond_time_series_ids <- pond_time_series_ids %>%
   mutate(mean_volume_gain_per_m2 = case_when(is.nan(mean_volume_gain_per_m2) ~0,
                                              TRUE ~mean_volume_gain_per_m2))
@@ -263,7 +262,7 @@ pond_time_series_ids %>% filter(degradation == "degradation") %>%
 # Write out statistics to file
 save(pond_time_series_ids, file = "data/pond_polys/pond_time_series.Rda")
 
-# Optional code to look into the ponds in detal
+# Optional code to look into the ponds in detail
 # pond_time_series_ids %>% filter(degradation == "degradation") %>%
 #   pull(ts_id)
 # pond_time_series_ids %>% filter(degradation == "degradation") %>%
