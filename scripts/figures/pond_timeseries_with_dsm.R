@@ -11,6 +11,30 @@ library(colorspace)
 library(pbapply)
 library(resmush)
 
+# Override buggy cowplot::get_legend if needed
+# get_legend <- function(plot){
+#   legends <- get_plot_component(plot, "guide-box", return_all = T)
+#   legends_new <- list()
+#   for(i in 1:length(legends)){
+#     if(!("zeroGrob" %in% class(legends[[i]]))) legends_new <- c(legends_new, list(legends[[i]]))
+#   }
+#   if(length(legends_new) > 0){
+#     do.call(cbind, legends_new)
+#   } else{
+#     return(legends[[1]])
+#   }
+# }
+# (test_plot <- ggplot()+
+#     geom_point(aes(x = 1:10, y = 1:10, 
+#                    colour = 1:10, 
+#                    size = 1:10),
+#                shape = 21)) +
+#   guides(colour = guide_colourbar(position = "bottom"),
+#          size = guide_legend(position = "top"))
+# ggdraw() + draw_grob(get_legend(test_plot))
+# get_legend(ggplot())
+
+
 # Load ponds and time-series
 ponds <- read_sf("data/pond_polys/ponds_for_time_series.gpkg")
 load("data/pond_polys/pond_time_series.Rda")
@@ -18,6 +42,7 @@ load("data/pond_polys/pond_time_series.Rda")
 # Set variable if plots should be generated to allow sourcing of functions
 # from this script
 generate_plots <- FALSE
+# generate_plots <- TRUE
 
 if(generate_plots){
 # Generate pond overview maps
