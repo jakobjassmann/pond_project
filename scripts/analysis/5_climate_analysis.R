@@ -43,40 +43,6 @@ correlations <- map(names(water_climate)[c(-1, -2, -3)],
     }) %>% bind_rows() %>%
   arrange(site, desc(abs(r))) %>%
   mutate(r = round(r, 2), p = round(p, 3))
-# site                 var     r     p
-# 1   cbh       temp_jja_mean -0.71 0.074
-# 2   cbh      precip_son_sum  0.56 0.192
-# 3   cbh       temp_son_mean  0.46 0.296
-# 4   cbh       temp_mam_mean  0.45 0.309
-# 5   cbh      precip_jja_sum -0.39 0.382
-# 6   cbh      spei_12_months  0.35 0.437
-# 7   cbh      precip_dfj_sum  0.34 0.462
-# 8   cbh       spei_9_months  0.33 0.466
-# 9   cbh      spei_24_months  0.31 0.505
-# 10  cbh precip_sept_aug_sum  0.28 0.548
-# 11  cbh       spei_6_months  0.20 0.665
-# 12  cbh       spei_3_months  0.16 0.731
-# 13  cbh      precip_mam_sum  0.13 0.785
-# 14  cbh   precip_annual_sum -0.12 0.800
-# 15  cbh    temp_annual_mean  0.07 0.883
-# 16  cbh       temp_djf_mean  0.06 0.898
-# 
-# 33  tlb       temp_mam_mean  0.56 0.191
-# 34  tlb       temp_jja_mean -0.55 0.199
-# 35  tlb      precip_jja_sum -0.44 0.322
-# 36  tlb   precip_annual_sum -0.42 0.350
-# 37  tlb      precip_son_sum  0.32 0.491
-# 38  tlb       temp_son_mean  0.30 0.507
-# 39  tlb      precip_dfj_sum  0.29 0.522
-# 40  tlb      spei_24_months  0.26 0.577
-# 41  tlb      spei_12_months  0.20 0.663
-# 42  tlb    temp_annual_mean  0.19 0.675
-# 43  tlb       spei_9_months  0.15 0.754
-# 44  tlb       temp_djf_mean -0.05 0.913
-# 45  tlb      precip_mam_sum  0.02 0.969
-# 46  tlb precip_sept_aug_sum  0.02 0.973
-# 47  tlb       spei_6_months  0.00 0.993
-# 48  tlb       spei_3_months  0.00 0.995
 
 # Save as table 
 write_csv(correlations, "tables/climate_water_cor.csv")
@@ -113,7 +79,7 @@ climate_cent <- ggplot(climate_data) +
            fill = "#0028A5AA") +
            geom_line(aes(x = year, y = temp_jja_mean, group = 1),
             colour = "#FF0000",
-            size = 1) +
+            linewidth = 1) +
   scale_y_continuous(name = "Temp. summer (°C)",
                     limits = c(0, 15),
                     sec.axis = sec_axis(~.*10, name = "Precip. autumn Y-1 (mm)")) +
@@ -136,7 +102,7 @@ climate_dec <- ggplot(climate_data %>%
            fill = "#0028A5AA") +
            geom_line(aes(x = year, y = temp_jja_mean, group = 1),
             colour = "#FF0000",
-            size = 1) +
+            linewidth = 1) +
   scale_y_continuous(name = "Temp. summer (°C)",
                     limits = c(0, 15),
                     sec.axis = sec_axis(~.*10, name = "Precip. autumn Y-1 (mm)")) +
@@ -163,7 +129,7 @@ climate_study <- ggplot(climate_data %>%
            width = 0.6) +
            geom_line(aes(x = year, y = temp_jja_mean, group = 1),
             colour = "#FF0000",
-            size = 2) +
+            linewidth = 2) +
   scale_y_continuous(name = "Summer Temperature (°C)",
                     limits = c(0, 15),
                     sec.axis = sec_axis(~.*10, name = "Autumn Preciptation (mm)")) +

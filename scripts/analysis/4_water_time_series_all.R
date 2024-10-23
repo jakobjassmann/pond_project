@@ -58,17 +58,23 @@ water_prop <- water_prop %>%
 # Save as csv
 write_csv(water_prop %>%
             mutate(area = round(area),
-                   prop = round(prop, 2)), "tables/annual_water_prop.csv")
+                   prop_round = round(prop, 2)), "tables/annual_water_prop.csv")
 gt(water_prop) %>% gtsave("tables/annual_water_prop.html")
 
 # Calculate repeat survey error
+# Range within 2019
 water_area %>% filter(calendar_year == 2019) %>%
   filter(site != "rdg") %>%
   group_by(site) %>%
   summarise(max_min_mean = (max(area) - min (area)))
+# Range across the whole timeseries
 water_area %>% 
   group_by(site) %>%
   summarise(max(area, na.rm = T) - min(area, na.rm = T))
+# Average area covered in time-series
+water_prop %>%
+  group_by(site) %>%
+  summarise(mean(area, na.rm = T))
 
 # Calculate trend (I don't think this is a good idea, but Gabriela requested this
 trend_models_all <- water_prop %>%
@@ -79,8 +85,8 @@ map(trend_models_all, summary)
 # Coefficients:
 #                                 Estimate Std. Error t value Pr(>|t|)
 # cbh: calendar_year -0.007192   0.009969  -0.721    0.498
-# rdg: calendar_year -4.282e-06  9.053e-06  -0.473    0.6617
-# tlb: calendar_year -0.001046   0.001557  -0.672    0.523
+# rdg: calendar_year -4.282e-06  9.053e-06  -0.473    0.661
+# tlb: calendar_year -0.001087   0.001552  -0.700    0.507
 imap(trend_models_all, function(model, name){
   model %>%
     tidy() %>%
@@ -97,9 +103,9 @@ trend_models_no2017 <- water_prop %>%
 map(trend_models_no2017, summary)
 # Coefficients:
 #                                 Estimate Std. Error t value Pr(>|t|)
-# cbh: as.numeric(calendar_year)    -556.0      311.6  -1.785    0.134
-# rdg: as.numeric(calendar_year)   -0.7007     1.4813  -0.473    0.661
-# tlb: as.numeric(calendar_year)    -53.22      69.87  -0.762    0.475
+# cbh: as.numeric(calendar_year)    -0.002815   0.001578  -1.785    0.134
+# rdg: as.numeric(calendar_year)   -4.282e-06  9.053e-06  -0.473    0.661
+# tlb: as.numeric(calendar_year)    -0.0002826  0.0002465  -1.146    0.295
 imap(trend_models_no2017, function(model, name){
   model %>%
     tidy() %>%
