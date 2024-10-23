@@ -94,6 +94,6 @@ https://github.com/jakobjassmann/pond_project
 _When using code or other content from this repostiory in scientific work, please use the citation provided above to acknwoledge the authors._ 
 
 - All code (.R files) are licensed under the MIT license (see [license text](https://github.com/jakobjassmann/pond_project/blob/main/LICENSE)).<br>
-- All other content of this repository, including: figures, raster, tabular and vector data are licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a><a rel="license" href="http://creativecommons.org/licenses/by/4.0/"> <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/80x15.png" /></a>
+- All other content of this repository, including: figures, raster, tabular and vector data, is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a><a rel="license" href="http://creativecommons.org/licenses/by/4.0/"> <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/80x15.png" /></a>
 
 [\[back to content\]](#content)
