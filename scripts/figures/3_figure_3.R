@@ -108,7 +108,7 @@ pond_time_series_ids <- mutate(pond_time_series_ids,
   annotate("text", 
            x = 0.1,
            y = 150,
-           label = "detection threshold\n< 15% (n = 68)",
+           label = "thermokarst \n< 15% (n = 68)",
            hjust = - 0.1,
            vjust = 1,
            colour = "darkblue",
@@ -223,7 +223,7 @@ label_size = 18 * 1,
                                              site_plot == "high" ~ 90))) +
     geom_text(aes(x = 0.1,
                   y = height,
-                  label = paste0("detection threshold\n < ", perc, "% (n = ", n, ")")),
+                  label = paste0("thermokarst\n < ", perc, "% (n = ", n, ")")),
               hjust = - 0.1,
               vjust = 1,
               colour = "darkblue",
@@ -248,7 +248,7 @@ label_size = 18 * 1,
               fontface = "bold",
               hjust = 1, vjust = 1,
               size = 14 / .pt) +
-    labs(x = "Surface volume lost 2014 vs. 2021 (m³ / m²)", y = "Number of Ponds") +
+    labs(x = "Mean drop in surface elevation (m)\n2014 vs. 2021", y = "Number of Ponds") +
     scale_colour_manual(values = site_col) +
     scale_fill_manual(values = site_col) +
     # scale_x_continuous(limits = c(-0.05, 0.55)) +

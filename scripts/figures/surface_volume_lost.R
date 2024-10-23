@@ -33,7 +33,7 @@ preds_rasts <- list.files("data/drone_data",
 ## Thermokarst plot
 
 # Set pond ID
-pond_id <- "tlb_025"
+pond_id <- "tlb_027"
 site_name <- "tlb"
 
 # Get geometries
