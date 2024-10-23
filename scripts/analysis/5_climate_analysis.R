@@ -113,7 +113,7 @@ climate_cent <- ggplot(climate_data) +
            fill = "#0028A5AA") +
            geom_line(aes(x = year, y = temp_jja_mean, group = 1),
             colour = "#FF0000",
-            size = 1) +
+            linewidth = 1) +
   scale_y_continuous(name = "Temp. summer (°C)",
                     limits = c(0, 15),
                     sec.axis = sec_axis(~.*10, name = "Precip. autumn Y-1 (mm)")) +
@@ -136,7 +136,7 @@ climate_dec <- ggplot(climate_data %>%
            fill = "#0028A5AA") +
            geom_line(aes(x = year, y = temp_jja_mean, group = 1),
             colour = "#FF0000",
-            size = 1) +
+            linewidth = 1) +
   scale_y_continuous(name = "Temp. summer (°C)",
                     limits = c(0, 15),
                     sec.axis = sec_axis(~.*10, name = "Precip. autumn Y-1 (mm)")) +
@@ -163,7 +163,7 @@ climate_study <- ggplot(climate_data %>%
            width = 0.6) +
            geom_line(aes(x = year, y = temp_jja_mean, group = 1),
             colour = "#FF0000",
-            size = 2) +
+            linewidth = 2) +
   scale_y_continuous(name = "Summer Temperature (°C)",
                     limits = c(0, 15),
                     sec.axis = sec_axis(~.*10, name = "Autumn Preciptation (mm)")) +
