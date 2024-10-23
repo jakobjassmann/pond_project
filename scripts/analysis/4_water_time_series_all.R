@@ -58,17 +58,23 @@ water_prop <- water_prop %>%
 # Save as csv
 write_csv(water_prop %>%
             mutate(area = round(area),
-                   prop = round(prop, 2)), "tables/annual_water_prop.csv")
+                   prop_round = round(prop, 2)), "tables/annual_water_prop.csv")
 gt(water_prop) %>% gtsave("tables/annual_water_prop.html")
 
 # Calculate repeat survey error
+# Range within 2019
 water_area %>% filter(calendar_year == 2019) %>%
   filter(site != "rdg") %>%
   group_by(site) %>%
   summarise(max_min_mean = (max(area) - min (area)))
+# Range across the whole timeseries
 water_area %>% 
   group_by(site) %>%
   summarise(max(area, na.rm = T) - min(area, na.rm = T))
+# Average area covered in time-series
+water_prop %>%
+  group_by(site) %>%
+  summarise(mean(area, na.rm = T))
 
 # Calculate trend (I don't think this is a good idea, but Gabriela requested this
 trend_models_all <- water_prop %>%
