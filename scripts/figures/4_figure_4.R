@@ -116,7 +116,7 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
   annotate("text", 
            x = 0.1,
            y = 110,
-           label = "detection threshold\n< 18% (n = 84)",
+           label = "vegetation colonisation\n< 18% (n = 84)",
            hjust = - 0.1,
            vjust = 1,
            colour = "darkblue",
@@ -240,7 +240,7 @@ plot_grid(
                                            site_plot == "high" ~ 100))) +
   geom_text(aes(x = 0.1,
                 y = height,
-                label = paste0("detection threshold\n < ", perc, "% (n = ", n, ")")),
+                label = paste0("vegetation colonisation\n < ", perc, "% (n = ", n, ")")),
             hjust = - 0.1,
             vjust = 1,
             colour = "darkblue",
@@ -270,7 +270,7 @@ plot_grid(
   #          arrow = arrow(length = unit(0.03, "npc")),
   #          curvature = -0.3,
   # ) +
-  labs(x = "Surface volume gained 2021 vs 2014 (m³ / m²)", y = "Number of Ponds") +
+  labs(x = "Mean gain in surface elevation (m)\n 2014 vs 2021", y = "Number of Ponds") +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
   scale_x_continuous(limits = c(-0.1, 0.4)) +
