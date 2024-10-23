@@ -260,7 +260,7 @@ label_size = 18 * 1,
           strip.text = element_blank()) +
     theme(plot.background = element_rect(fill = "white"),
           panel.background = element_rect(fill = "white")))
-save_plot("figures/6_figure_S3.png", 
+save_plot("figures/6_figure_S4.png", 
           volume_lost_hist_site,
           nrow = 1,
           ncol = 2,
