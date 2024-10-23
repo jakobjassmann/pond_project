@@ -116,7 +116,7 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
   annotate("text", 
            x = 0.1,
            y = 110,
-           label = "vegetation colonisation\n< 18% (n = 84)",
+           label = "colonisation threshold\n < 18% (n = 84)",
            hjust = - 0.1,
            vjust = 1,
            colour = "darkblue",
@@ -213,7 +213,7 @@ plot_grid(
             bg = "white")
 
 # Plot histograms for volume gain in each pond time series for each site for 
-# Fig. S4
+# Fig. S5
 (volume_gained_hist_site <- ggplot(pond_time_series_ids) +
   geom_histogram(aes(x = mean_volume_gain_per_m2, fill = site_plot), 
                  binwidth = 0.025, 
@@ -240,7 +240,7 @@ plot_grid(
                                            site_plot == "high" ~ 100))) +
   geom_text(aes(x = 0.1,
                 y = height,
-                label = paste0("vegetation colonisation\n < ", perc, "% (n = ", n, ")")),
+                label = paste0("colonis. threshold\n < ", perc, "% (n = ", n, ")")),
             hjust = - 0.1,
             vjust = 1,
             colour = "darkblue",
@@ -282,7 +282,7 @@ plot_grid(
         strip.text = element_blank()) +
   theme(plot.background = element_rect(fill = "white"),
         panel.background = element_rect(fill = "white")))
-save_plot("figures/6_figure_S4.png", 
+save_plot("figures/6_figure_S5.png", 
           volume_gained_hist_site,
           nrow = 1,
           ncol = 2,
