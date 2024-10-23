@@ -11,7 +11,7 @@ library(tidyverse)
 library(cowplot)
 
 # Source surface water time-series and climate analysis scripts
-source("scripts/figures/water_time_series_all.R")
+source("scripts/analysis/4_water_time_series_all.R")
 #source("scripts/analysis/climate_analysis.R")
 
 # Define 8% margin based on plot size of 4 inch
