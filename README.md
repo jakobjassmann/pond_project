@@ -7,7 +7,7 @@ Last update to readme: 23 October 2024
 ## Content
 
 This repository contains the scripts and tabular data needed to regenerate the analysis presented in Assmann et al (in prep). <br><br>
-Note: Additional raster data (drone imagery and DSMs) are requried. These are available on the Zenodo, see details below. 
+*Note: Additional raster data (drone imagery and DSMs) are requried. These are available on the Zenodo, see details below.* 
 
 - [1. Folder structure](#1-folder-structure)
 - [2. Required data](#2-required-data)
