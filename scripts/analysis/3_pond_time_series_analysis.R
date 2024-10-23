@@ -75,7 +75,7 @@ pond_time_series_ids %>% filter(stable == "stable") %>% pull(ts_id)
 save(pond_time_series_ids, file = "data/pond_polys/pond_time_series.Rda")
 load("data/pond_polys/pond_time_series.Rda")
 
-## Identify bank degreadation and vegetation incursion
+## Identify bank degradation and vegetation incursion
 # combination <- pond_time_series_ids %>% filter(ts_id == "cbh_262")
 
 # Define helper function to calculate dsm differences at beginning and end 
@@ -131,7 +131,8 @@ get_volume_diff <- function(combination){
         crop(., pond_bounds)
       # Calculate min value masking maximum water extend across all years (incl. 2017)
       dsm_min <- mask(dsm_rast, preds_all_crop, inverse = T) %>%
-        global(., fun = min, 
+        global(., 
+               fun = min, 
                #probs = 0.02, 
                na.rm = T) %>%
         as.numeric()
