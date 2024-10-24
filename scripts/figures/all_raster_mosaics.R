@@ -104,7 +104,7 @@ plot_raster <- function(rast_file,
     geom_sf(data = aoi_geom,
             colour = site_colour,
             fill = NA,
-            linewidth = 2) +
+            linewidth = 0.5) +
     theme_nothing()
 
   # Add predicitons if requested
