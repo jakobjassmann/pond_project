@@ -63,18 +63,28 @@ gt(water_prop) %>% gtsave("tables/annual_water_prop.html")
 
 # Calculate repeat survey error
 # Range within 2019
-water_area %>% filter(calendar_year == 2019) %>%
+range_2019 <- water_area %>% filter(calendar_year == 2019) %>%
   filter(site != "rdg") %>%
   group_by(site) %>%
-  summarise(max_min_mean = (max(area) - min (area)))
+  summarise(max_min_mean = (max(area) - min (area)),
+            sd = sd(area),
+            mean = mean(area))
 # Range across the whole timeseries
 water_area %>% 
   group_by(site) %>%
   summarise(max(area, na.rm = T) - min(area, na.rm = T))
 # Average area covered in time-series
-water_prop %>%
+mean_all <- water_prop %>%
   group_by(site) %>%
+  filter(site != "rdg") %>%
   summarise(mean(area, na.rm = T))
+mean_no2017 <- water_prop %>%
+  group_by(site) %>%
+  filter(year != 2017) %>%
+  filter(site != "rdg") %>%
+  summarise(mean(area, na.rm = T))
+range_2019$sd / mean_all$`mean(area, na.rm = T)` 
+range_2019$sd / mean_no2017$`mean(area, na.rm = T)` 
 
 # Calculate trend (I don't think this is a good idea, but Gabriela requested this
 trend_models_all <- water_prop %>%
