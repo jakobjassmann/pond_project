@@ -11,7 +11,10 @@ library(cowplot)
 # Load annotated pond-time-series dataset
 load("data/pond_polys/pond_time_series.Rda")
 
-# Calculate proportion of ponds 
+## Calculate proportion of ponds 
+# Ponds overall
+(pond_time_series_ids %>% st_drop_geometry() %>% tally())
+(pond_time_series_ids %>% group_by(site) %>% st_drop_geometry() %>% tally())
 # Present six less than 6 years
 ((pond_time_series_ids %>% filter(n_years < 6) %>% st_drop_geometry() %>% nrow()) /
     nrow(pond_time_series_ids)) %>% round(2)
