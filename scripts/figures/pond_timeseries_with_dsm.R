@@ -242,7 +242,8 @@ plot_pond_dsm <- function(preds_file,
     scale_fill_continuous_sequential(palette = "inferno", rev = F,
                                      limits = c(-0.1, 0.5), oob = scales::squish,
                                      begin = 0.1,
-                                     end = 0.9,
+                                     end = 0.8,
+                                     l2 = 90,
                                      na.value = "transparent") +
     scale_x_continuous(expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0)) +
@@ -400,7 +401,8 @@ legend_dsm <- function(pond_bounds){
                                      breaks = seq(-0.1,0.5,0.1),
                                      oob = scales::squish,
                                      begin = 0.1,
-                                     end = 0.9,
+                                     end = 0.8,
+                                     l2 = 90,
                                      labels = c("-0.1", "0", "0.1", "0.2", "0.3", "0.4" , "0.5+")
     ) +
     guides(fill = guide_colourbar(
@@ -562,7 +564,8 @@ legend_manuscript <- function(pond_bounds, bg_colour = "black"){
                                      breaks = seq(-0.1,0.5,0.1),
                                      oob = scales::squish,
                                      begin = 0.1,
-                                     end = 0.9,
+                                     end = 0.8,
+                                     l2 = 90,
                                      labels = c("-0.1", "0.0", "0.1", "0.2", "0.3", "0.4" , "0.5+")
     ) +
     guides(fill = guide_colourbar(
@@ -690,7 +693,8 @@ legend_manuscript2 <- function(pond_bounds, bg_colour = "black"){
                                      breaks = seq(-0.1,0.5,0.1),
                                      oob = scales::squish,
                                      begin = 0.1,
-                                     end = 0.9,
+                                     end = 0.8,
+                                     l2 = 90,
                                      labels = c("-0.1", "0.0", "0.1", "0.2", "0.3", "0.4" , "0.5+")
     ) +
     guides(fill = guide_colourbar(
