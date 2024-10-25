@@ -64,10 +64,12 @@ preds_all_crop <- sum(preds_all_crop, na.rm = T)
 
 # Calculate min value for area nevery covered by water
 dsm_min_2014 <- mask(dsm_crop_2014, preds_all_crop, inverse = T) %>%
-  global(., fun=quantile, probs = 0.02, na.rm = T) %>%
+  global(., fun=min, #quantile, probs = 0.02, 
+         na.rm = T) %>%
   as.numeric()
 dsm_min_2021 <- mask(dsm_crop_2021, preds_all_crop, inverse = T) %>%
-  global(., fun=quantile, probs = 0.02, na.rm = T) %>%
+  global(., fun=min, #quantile, probs = 0.02,
+         na.rm = T) %>%
   as.numeric()
 
 # Mask dsm for area covered by water in year only and standardise dsm
@@ -349,9 +351,9 @@ transect_values_2021 <- data.frame(
              size = 14 / .pt, hjust = 0, vjust = 3.5,
              fontface = "bold",
              colour = "white") +
-    annotate("text", label = "pond", x = 3, y = -0.11,
+    annotate("text", label = "pond", x = 3, y = -0.08,
              size = 14 / .pt, colour = "#82c4f5") +
-    scale_y_continuous(limits = c(-0.25, 0.5)) +
+    scale_y_continuous(limits = c(-0.2, 0.65)) +
     scale_colour_continuous_sequential(palette = "inferno", rev = F,
                                        limits = c(-0.1, 0.5), 
                                        breaks = seq(-0.1,0.5,0.1),
@@ -380,7 +382,7 @@ transect_values_2021 <- data.frame(
              size = 14 / .pt, hjust = 0, vjust = 1.75,
              fontface = "bold",
              colour = "white") +
-    annotate("text", label = "pond", x = 6, y = -0.11,
+    annotate("text", label = "pond", x = 6, y = -0.08,
              size = 14 / .pt, colour = "#82c4f5") +
     annotate("errorbar", 
              x = 6.4, 
@@ -392,7 +394,7 @@ transect_values_2021 <- data.frame(
     ) +
     annotate("text", 
              x = 6.4,
-             y = 0.45,
+             y = 0.55,
              hjust = 0.32,
              label = paste0("drop in elevation", " (",
                             round(mean(transect_values_2014[transect_values_2021$pond,2], na.rm = T), 2), 
@@ -401,11 +403,11 @@ transect_values_2021 <- data.frame(
              colour = "white") +
     annotate("segment",
              x = 6.4, xend = 6.4,
-             y = 0.375, yend = 0.25, arrow = arrow(length = unit(0.1, "inches")),
+             y = 0.475, yend = 0.33, arrow = arrow(length = unit(0.1, "inches")),
              linewidth = 0.75,
              colour = "white") +
     scale_x_continuous(breaks = 0:10) +
-    scale_y_continuous(limits = c(-0.25, 0.5)) +
+    scale_y_continuous(limits = c(-0.2, 0.65)) +
     scale_colour_continuous_sequential(palette = "inferno", rev = F,
                                        limits = c(-0.1, 0.5), 
                                        breaks = seq(-0.1,0.5,0.1),
