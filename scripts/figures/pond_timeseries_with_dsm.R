@@ -224,7 +224,9 @@ plot_pond_dsm <- function(preds_file,
   
   # Calculate min value for area nevery covered by water
   dsm_min <- mask(dsm_crop, preds_all_crop, inverse = T) %>%
-    global(., fun=quantile, probs = 0.02, na.rm = T) %>%
+    global(., fun=min, 
+           #probs = 0.02, 
+           na.rm = T) %>%
     as.numeric()
   
   # Mask dsm for area covered by water in year only and standardise dsm
