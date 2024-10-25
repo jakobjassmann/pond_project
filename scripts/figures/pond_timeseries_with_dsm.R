@@ -845,7 +845,7 @@ composite_plot <- function(combination,
                   .,
                   nrow = 2,
                   ncol = length(norm_rasts_site) + 1,
-                  base_height = 2,
+                  base_height = 8,
                   base_asp = asp_ratio,
                   bg = "black")
     }
