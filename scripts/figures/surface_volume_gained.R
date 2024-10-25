@@ -357,9 +357,9 @@ transect_values_2021 <- data.frame(
              size = 14 / .pt, hjust = 0, vjust = 3.5,
              fontface = "bold",
              colour = "white") +
-    annotate("text", label = "pond", x = 4.5, y = -0.07,
+    annotate("text", label = "pond", x = 4.5, y = -0.08,
              size = 14 / .pt, colour = "#82c4f5") +
-    scale_y_continuous(limits = c(-0.175, 0.575)) +
+    scale_y_continuous(limits = c(-0.2, 0.65)) +
     scale_colour_continuous_sequential(palette = "inferno", rev = F,
                                        limits = c(-0.1, 0.5), 
                                        breaks = seq(-0.1,0.5,0.1),
@@ -388,7 +388,7 @@ transect_values_2021 <- data.frame(
              size = 14 / .pt, hjust = 0, vjust = 1.75,
              fontface = "bold",
              colour = "white") +
-    annotate("text", label = "pond", x = 6.1, y = -0.07,
+    annotate("text", label = "pond", x = 6.1, y = -0.08,
              size = 14 / .pt, colour = "#82c4f5") +
     annotate("errorbar", 
              x = 5, 
@@ -400,7 +400,7 @@ transect_values_2021 <- data.frame(
     ) +
     annotate("text", 
              x = 5,
-             y = 0.425,
+             y = 0.475,
              hjust = 0.31,
              label = paste0("gain in elevation",
                             " (", round(max(transect_values_2021[transect_values_2014$pond,2], na.rm = T),2),
@@ -409,11 +409,11 @@ transect_values_2021 <- data.frame(
              colour = "white") +
     annotate("segment",
              x = 5, xend = 5,
-             y = 0.35, yend = 0.20, arrow = arrow(length = unit(0.1, "inches")),
+             y = 0.4, yend = 0.23, arrow = arrow(length = unit(0.1, "inches")),
              linewidth = 0.75,
              colour = "white") +
     scale_x_continuous(breaks = 0:10) +
-    scale_y_continuous(limits = c(-0.175, 0.575)) +
+    scale_y_continuous(limits = c(-0.2, 0.65)) +
     scale_colour_continuous_sequential(palette = "inferno", rev = F,
                                        limits = c(-0.1, 0.5), 
                                        breaks = seq(-0.1,0.5,0.1),
