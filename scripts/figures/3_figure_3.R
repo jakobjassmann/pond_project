@@ -73,7 +73,8 @@ pond_plot <- composite_plot(pond_time_series_ids %>% filter(ts_id == "tlb_027"),
                return_plot = T,
                separate_legend = F,
                manuscript_legend = T,
-               add_transect = T)
+               add_transect = T,
+               add_caption = T)
 
 # Pond statistics
 pond_time_series_ids %>% 
