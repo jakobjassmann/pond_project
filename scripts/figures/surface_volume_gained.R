@@ -65,10 +65,12 @@ preds_all_crop <- sum(preds_all_crop, na.rm = T)
 
 # Calculate min value for area nevery covered by water
 dsm_min_2014 <- mask(dsm_crop_2014, preds_all_crop, inverse = T) %>%
-  global(., fun=quantile, probs = 0.02, na.rm = T) %>%
+  global(., fun=min, #quantile, probs = 0.02,
+         na.rm = T) %>%
   as.numeric()
 dsm_min_2021 <- mask(dsm_crop_2021, preds_all_crop, inverse = T) %>%
-  global(., fun=quantile, probs = 0.02, na.rm = T) %>%
+  global(., fun=min, #quantile, probs = 0.02,
+         na.rm = T) %>%
   as.numeric()
 
 # Mask dsm for area covered by water in year only and standardise dsm
