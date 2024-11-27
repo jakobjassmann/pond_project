@@ -59,7 +59,7 @@ vignettes/*.pdf
 /data/planet_data/*.*
 /data/pond_polys/*.*
 /data/training_data/
-/data/training_polygons/*.xlsx
+/data/training_polygons/*.csv
 /data/web_data/*
 /figures/cbh/individual_ponds/
 /figures/tlb/individual_ponds/
