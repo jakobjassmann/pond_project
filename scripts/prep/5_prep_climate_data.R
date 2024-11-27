@@ -13,7 +13,7 @@ library(lubridate)
 library(SPEI)
 
 # Prep folder
-dir.create("data/climate")
+dir.create("data/climate_data")
 
 # Downlad climate data for Chokurdah from GHCN-D via KNMI
 # Source URLS obtained from:
