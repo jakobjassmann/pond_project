@@ -1,5 +1,5 @@
 # Assmann et al. (in prep) - Tundra Ponds
-Jakob J. Assmann, Cengiz Akandil1, Elena Plekhanova, Alizée Le Moigne, Sergey V Karsanaev, Trofim C. Maximov, Gabriela Schaepman-Strub
+Jakob J. Assmann, Cengiz Akandil, Elena Plekhanova, Alizée Le Moigne, Sergey V Karsanaev, Trofim C. Maximov, Gabriela Schaepman-Strub
 
 **Code repository accompanying Assmann et al. (in prep)**<br><br>
 Last update to readme: 23 October 2024
@@ -23,12 +23,12 @@ This code repostiory has the following folder stucture:
 ```
 data/                                   
   |- climate-data/                      - Climate data for supplementary figures and analyses.
-  |- drone_data/                        - Placeholder folder for the drone RGB imagery, DSMs and surface water predictions
+  |- drone_data/                        - Placeholder folder(s) for the drone RGB imagery, DSMs and surface water predictions
   |- planet_data/                       - Placeholder folder for the Planet satellite imagery used in Figure 1 for the background. 
   |- pond_polys/                        - Placeholder folder for the pond polygon geometries
-  |- training_data/                     - Vector/raster source files for the stratifications tested (BIOWIDE and Derek)
-  |- training_polygons/                 - Pixel centre coordinated and extracted predictor values for the model training
-  |- web_data/                          - Variogram samples for predictor variables
+  |- training_data/                     - Placeholder folder for the pixel training data used to determine the bcc thresholds. 
+  |- training_polygons/                 - Manually annotated polygons used to generate the training data (above). 
+  |- web_data/                          - Placeholder folder for the the TMS web tiles generated for the Web-GIS. 
 docs/                                   - HTML and Java-Script code for the Web-GIS
 gis/                                    - QGIS projects for annotations and visualisation
 scripts/                                
