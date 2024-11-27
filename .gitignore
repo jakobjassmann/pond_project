@@ -44,7 +44,22 @@ vignettes/*.pdf
 # Leaflet file
 /docs/leaflet.ajax.js
 
-# Folders
-/data/
+# Folders and content
+/data/climate_data/
+/data/drone_data/cbh_native
+/data/drone_data/cbh/*/
+/data/drone_data/cbh/*.r
+/data/drone_data/rdg_native
+/data/drone_data/rdg/*/
+/data/drone_data/rdg/*.r
+/data/drone_data/tlb_native/
+/data/drone_data/tlb/*/
+/data/drone_data/tlb/*.r
+/data/drone_data/*.sh
+/data/planet_data/*.*
+/data/pond_polys/*.*
+/data/training_data/
+/data/training_polygons/*.xlsx
+/data/web_data/*
 /figures/cbh/individual_ponds/
 /figures/tlb/individual_ponds/
