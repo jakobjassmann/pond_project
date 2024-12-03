@@ -25,8 +25,8 @@ library(resmush)
 #   }
 # }
 # (test_plot <- ggplot()+
-#     geom_point(aes(x = 1:10, y = 1:10, 
-#                    colour = 1:10, 
+#     geom_point(aes(x = 1:10, y = 1:10,
+#                    colour = 1:10,
 #                    size = 1:10),
 #                shape = 21)) +
 #   guides(colour = guide_colourbar(position = "bottom"),
@@ -284,25 +284,38 @@ plot_pond_dsm <- function(preds_file,
       y2 <- 0.15
     }
     # Add caption
-    dsm_plot <- dsm_plot + 
-      annotate("text",
-               x = ext(dsm_crop)[1] + (ext(dsm_crop)[2] - ext(dsm_crop)[1]) * 0.05,
-               y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * y1,
-               label = "Surface",
-               colour = "white",
-               size = 14 / .pt,
-               fontface = "bold",
-               hjust = 0,
-               vjust = 1) +
-      annotate("text",
-               x = ext(dsm_crop)[1] + (ext(dsm_crop)[2] - ext(dsm_crop)[1]) * 0.05,
-               y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * y2,
-               label = "Elevation",
-               colour = "white",
-               size = 14 / .pt,
-               fontface = "bold",
-               hjust = 0,
-               vjust = 1)
+    if(exists("generate_plots", envir = .GlobalEnv)){
+      dsm_plot <- dsm_plot + 
+        annotate("text",
+                 x = ext(dsm_crop)[1] + (ext(dsm_crop)[2] - ext(dsm_crop)[1]) * 0.05,
+                 y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * y1,
+                 label = "DSM",
+                 colour = "white",
+                 size = 14 / .pt,
+                 fontface = "bold",
+                 hjust = 0,
+                 vjust = 1)  
+    } else {
+      dsm_plot <- dsm_plot + 
+        annotate("text",
+                 x = ext(dsm_crop)[1] + (ext(dsm_crop)[2] - ext(dsm_crop)[1]) * 0.05,
+                 y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * y1,
+                 label = "Surface",
+                 colour = "white",
+                 size = 14 / .pt,
+                 fontface = "bold",
+                 hjust = 0,
+                 vjust = 1) +
+        annotate("text",
+                 x = ext(dsm_crop)[1] + (ext(dsm_crop)[2] - ext(dsm_crop)[1]) * 0.05,
+                 y = ext(dsm_crop)[3] + (ext(dsm_crop)[4] - ext(dsm_crop)[3]) * y2,
+                 label = "Elevation",
+                 colour = "white",
+                 size = 14 / .pt,
+                 fontface = "bold",
+                 hjust = 0,
+                 vjust = 1)
+    }
   }
   
   # Add transects if requested
@@ -795,7 +808,7 @@ composite_plot <- function(combination,
                   .,
                   nrow = 3,
                   ncol = 7,
-                  base_height = 1.25,
+                  base_height = 1.5,
                   base_asp = asp_ratio,
                   bg = "black")
     }
@@ -879,8 +892,9 @@ if(generate_plots){
   ## Generate plots for all unique ponds
   pond_time_series_ids %>%
     split(., .$ts_id) %>%
-    pblapply(., composite_plot, manuscript_legend = T, cl = 31)
+    pblapply(., composite_plot, manuscript_legend = T, add_caption = T, cl = 31)
 }
+
 
 
 
