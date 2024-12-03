@@ -46,6 +46,15 @@ pblapply(files_to_upload, function(x) {
 }, cl = cl)
 stopCluster(cl)
 
+# Upload predictions
+files_to_upload <- list.files("data/web_data/preds", "geojson", recursive = T)
+pblapply(files_to_upload, function(x) {
+  put_object(paste0("data/web_data/preds/", x),
+             bucket = "pondproject",
+             object = paste0("preds/", x))
+  return(NULL)
+})
+
 # Upload leaflet
 put_object("docs/index.html",
   bucket = "pondproject")

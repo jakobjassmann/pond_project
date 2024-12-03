@@ -88,6 +88,16 @@
         });
         // Add to map and open pop-ups
         pondTimeSeries.addTo(geometryLayers).openPopup();
+
+        // Water prediction layers
+        var preds2014 = new L.geoJson.ajax("https://pondproject.s3.eu-central-1.amazonaws.com/preds/2014.geojson", {color: "#6054FF", fillOpacity: 0.4, weight: 1});
+        var preds2016 = new L.geoJson.ajax("https://pondproject.s3.eu-central-1.amazonaws.com/preds/2016.geojson", {color: "#6054FF", fillOpacity: 0.4, weight: 1});
+        var preds2017 = new L.geoJson.ajax("https://pondproject.s3.eu-central-1.amazonaws.com/preds/2017.geojson", {color: "#6054FF", fillOpacity: 0.4, weight: 1});
+        var preds2018 = new L.geoJson.ajax("https://pondproject.s3.eu-central-1.amazonaws.com/preds/2018.geojson", {color: "#6054FF", fillOpacity: 0.4, weight: 1});
+        var preds2019 = new L.geoJson.ajax("https://pondproject.s3.eu-central-1.amazonaws.com/preds/2019.geojson", {color: "#6054FF", fillOpacity: 0.4, weight: 1});
+        var preds2020 = new L.geoJson.ajax("https://pondproject.s3.eu-central-1.amazonaws.com/preds/2020.geojson", {color: "#6054FF", fillOpacity: 0.4, weight: 1});
+        var preds2021 = new L.geoJson.ajax("https://pondproject.s3.eu-central-1.amazonaws.com/preds/2021.geojson", {color: "#6054FF", fillOpacity: 0.4, weight: 1});
+
         
         // drone imagery as base maps
         var droneImagery = {"2021 drone images": rgb2021,
@@ -107,7 +117,7 @@
             return this._div;
         };
         title.update = function(props) {
-            this._div.innerHTML = "Kytalyk Ponds 2014-2021";
+            this._div.innerHTML = 'Kytalyk Ponds 2014-2021<br><div style="font-size:16px;font-weight:normal">click pond to open timeseries pop up</div>';
         };
         title.addTo(map);
 
@@ -125,7 +135,16 @@
         title.addTo(map);
 
         // Add base layers
-        L.control.layers(droneImagery, {"Ponds (mean extent)": geometryLayers}, {collapsed: false}).addTo(map);
+        L.control.layers(droneImagery, 
+            {"Ponds (mean extent)": geometryLayers,
+             "Water 2021": preds2021,
+             "Water 2020": preds2020,
+             "Water 2019": preds2019,
+             "Water 2018": preds2018,
+             "Water 2017": preds2017,
+             "Water 2016": preds2016,
+             "Water 2014": preds2014
+        }, {collapsed: false}).addTo(map);
 
         // Fit to overlay bounds (SW and NE points with (lat, lon))
         map.fitBounds([[70.82727980950429, 147.5013505535841], [70.83575920299582, 147.457309738455]]);
