@@ -251,9 +251,9 @@ plot_grid(
               slice(1) %>%
               mutate(height = case_when(site_plot == "medium" ~ 100,
                                         site_plot == "high" ~ 100),
-                     perc = case_when(site_plot == "medium" ~ 39,
+                     perc = case_when(site_plot == "medium" ~ 37,
                                         site_plot == "high" ~ 12),
-                     n = case_when(site_plot == "medium" ~ 41,
+                     n = case_when(site_plot == "medium" ~ 40,
                                         site_plot == "high" ~ 43))) +
   geom_text(aes(x = Inf, y = height,
                 label = paste0("Site: ", site_plot),

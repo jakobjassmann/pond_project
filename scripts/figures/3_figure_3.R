@@ -205,7 +205,7 @@ label_size = 18 * 1,
 
 
 # Plot histograms for volume gain in each pond time series per site for supp.
-# Fig. S5
+# Fig. S4
 (volume_lost_hist_site <- ggplot(pond_time_series_ids) +
     geom_histogram(aes(x = mean_volume_loss_per_m2, fill = site_plot), 
                    binwidth = 0.025, 
@@ -235,7 +235,7 @@ label_size = 18 * 1,
                 slice(1) %>%
                 mutate(height = case_when(site_plot == "medium" ~ 150,
                                           site_plot == "high" ~ 150),
-                       perc = case_when(site_plot == "medium" ~ 34,
+                       perc = case_when(site_plot == "medium" ~ 33,
                                         site_plot == "high" ~ 9),
                        n = case_when(site_plot == "medium" ~ 36,
                                         site_plot == "high" ~ 32))) +
