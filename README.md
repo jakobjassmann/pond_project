@@ -43,9 +43,13 @@ tables/                                 - Tables presented in the manuscript and
 
 ## 2. Required data
 
-To following datasets are not included in this code repository, but are required to regenerate the analysis.  
+To following data are not included in this code repository, but are required to regenerate the analysis.   
 
-**Kytalyk drone RGB images and DSM rasters** - Assmann et al. 2024 hosted on Zenodo: :exclamation: Add link! :exclamation: 
+**Drone RGB images and DSM rasters**
+
+**Assmann et al. 2024. Dataset for "Assmann et al. (in prep) Freshwater ponds create highly dynamic Arctic tundra landscapes". Zenodo. [https://doi.org/10.5281/zenodo.13992091](https://doi.org/10.5281/zenodo.13992091)**
+
+Instructions on how to integrate data and code are provided on the above Zenodo repository.
 
 [\[back to content\]](#content)
 
