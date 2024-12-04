@@ -46,7 +46,7 @@ To following data are not included in this code repository, but are required to 
 
 **Drone RGB images and DSM rasters**
 
-**Assmann et al. 2024. Dataset for "Assmann et al. Freshwater ponds create highly dynamic Arctic tundra landscapes". Zenodo. [https://doi.org/10.5281/zenodo.13992091](https://doi.org/10.5281/zenodo.13992091)**
+**Assmann et al. 2024. Dataset for "Assmann et al. Freshwater ponds create highly dynamic Arctic tundra landscapes". Zenodo. [https://doi.org/10.5281/zenodo.13992090](https://doi.org/10.5281/zenodo.13992090)**
 
 Instructions on how to integrate data and code are provided on the above Zenodo repository.
 
