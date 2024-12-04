@@ -1,4 +1,4 @@
-# Assmann et al. (in prep) - Tundra Ponds
+# Assmann et al. (in prep) - Freshwater ponds create highly dynamic Arctic tundra landscapes
 Jakob J. Assmann, Cengiz Akandil, Elena Plekhanova, Alizée Le Moigne, Sergey V Karsanaev, Trofim C. Maximov, Gabriela Schaepman-Strub
 
 **Code repository accompanying Assmann et al. (in prep)**<br><br>
