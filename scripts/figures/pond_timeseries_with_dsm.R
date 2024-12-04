@@ -895,6 +895,11 @@ if(generate_plots){
     pblapply(., composite_plot, manuscript_legend = T, add_caption = T, cl = 31)
 }
 
-
-
+if(generate_plots){
+  # Generate plots for the excluded "experimental" ponds in tlb
+  load("data/pond_polys/experiment_pond_time_series.Rda")
+  experiment_pond_time_series %>%
+    split(., .$ts_id) %>%
+    pblapply(., composite_plot, manuscript_legend = T, add_caption = T)
+}
 

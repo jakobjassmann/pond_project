@@ -434,6 +434,12 @@ pond_time_series_ids <- pond_time_series_ids %>%
 save(pond_time_series_ids, file = "data/pond_polys/pond_time_series.Rda")
 write_sf(ponds_for_time_series, "data/pond_polys/ponds_for_time_series.gpkg")
 
+# Write out subset of ponds that will be excluded to to experimental manipulation
+experiment_ponds <- read_csv("data/pond_polys/experiment_ponds.csv")
+experiment_pond_time_series <- pond_time_series_ids %>%
+  filter(ts_id %in% experiment_ponds$ts_id)
+save(experiment_pond_time_series, file = "data/pond_polys/experiment_pond_time_series.Rda")
+
 # Time-series for GIS use
 write_sf(select(pond_time_series_ids,
                 ts_id,
