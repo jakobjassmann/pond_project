@@ -5,7 +5,7 @@ Last update to readme: 4 December 2024
 
 ## Content
 
-This repository contains the scripts and tabular data needed to regenerate the analysis presented in Assmann et al (in prep). <br><br>
+This repository contains the scripts and tabular data needed to regenerate the analysis presented in [Assmann et al (preprint)](https://doi.org/10.21203/rs.3.rs-5581925/v1). <br><br>
 *Note: Additional raster data (drone imagery and DSMs) are requried. These are available on the Zenodo, see details below.* 
 
 - [1. Folder structure](#1-folder-structure)
@@ -88,8 +88,7 @@ We would like to thank all drone-pilots and field team members who contributed t
 
 ## 5. Citation
 
-Jakob J. Assmann, Cengiz Akandil, Elena Plekhanova, Alizée Le Moigne, Sergey V Karsanaev, Trofim C. Maximov, Gabriela Schaepman-Strub (in prep). Kytalyk Pond Project.
-https://github.com/jakobjassmann/pond_project  
+Assmann, J.J., Akandil, C., Plekhanova, E., Le Moigne, A., Karsanaev, S.V., Maximov, T.C., Schaepman-Strub, G. (2025). Freshwater ponds create highly dynamic Arctic tundra landscapes. Preprint on Research Square. https://doi.org/10.21203/rs.3.rs-5581925/v1
 
 [\[back to content\]](#content)
 
