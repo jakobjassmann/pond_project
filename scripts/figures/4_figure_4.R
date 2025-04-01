@@ -282,7 +282,7 @@ plot_grid(
         strip.text = element_blank()) +
   theme(plot.background = element_rect(fill = "white"),
         panel.background = element_rect(fill = "white")))
-save_plot("figures/6_figure_S5.png", 
+save_plot("figures/7_figure_S5.png", 
           volume_gained_hist_site,
           nrow = 1,
           ncol = 2,
