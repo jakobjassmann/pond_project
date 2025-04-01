@@ -10,6 +10,21 @@ library(cowplot)
 library(colorspace)
 library(pbapply)
 
+##  Prepare parallel environment
+# Windows
+# library(parallel)
+# cl <- makeCluster(detectCores() - 1)
+# clusterEvalQ(cl, {
+#   library(sf)
+#   library(tidyverse)
+#   library(terra)
+#   library(tidyterra)
+#   library(colorspace)
+#   library(cowplot)})
+# Unix
+cl <- detectCores() - 1
+
+
 # Load ponds and time-series
 ponds <- read_sf("data/pond_polys/ponds_for_time_series.gpkg")
 load("data/pond_polys/pond_time_series.Rda")
@@ -212,7 +227,7 @@ get_volume_diff(pond_time_series_ids %>% filter(ts_id == "cbh_009"))
 # Get volume difference for all combinations
 pond_time_series_ids <- pond_time_series_ids %>%
            split(., 1:nrow(.)) %>%
-           pblapply(get_volume_diff, cl = 31) %>%
+           pblapply(get_volume_diff, cl = cl) %>%
   bind_rows() %>%
   full_join(pond_time_series_ids, .)
 
@@ -344,7 +359,7 @@ get_gcc_diff <- function(combination){
 pond_time_series_ids <- pond_time_series_ids %>%
   mutate(gcc_diff = pond_time_series_ids %>%
            split(., 1:nrow(.)) %>%
-           pblapply(get_gcc_diff, cl = 31) %>% unlist())
+           pblapply(get_gcc_diff, cl = cl) %>% unlist())
 
 # Plot histogram of gcc differences
 hist(pond_time_series_ids$gcc_diff)
@@ -367,3 +382,6 @@ pond_time_series_ids %>% filter(veg_intrusion == "veg_intrusion") %>%
 
 # Save changes to pond time series object
 save(pond_time_series_ids, file = "data/pond_polys/pond_time_series.Rda")
+
+# Stop cluster on Windows
+# stopCluster(cl)

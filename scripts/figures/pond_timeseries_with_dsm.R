@@ -9,31 +9,48 @@ library(sf)
 library(cowplot)
 library(colorspace)
 library(pbapply)
+library(parallel)
 library(resmush)
 
-# Override buggy cowplot::get_legend if needed
-# get_legend <- function(plot){
-#   legends <- get_plot_component(plot, "guide-box", return_all = T)
-#   legends_new <- list()
-#   for(i in 1:length(legends)){
-#     if(!("zeroGrob" %in% class(legends[[i]]))) legends_new <- c(legends_new, list(legends[[i]]))
-#   }
-#   if(length(legends_new) > 0){
-#     do.call(cbind, legends_new)
-#   } else{
-#     return(legends[[1]])
-#   }
-# }
-# (test_plot <- ggplot()+
-#     geom_point(aes(x = 1:10, y = 1:10,
-#                    colour = 1:10,
-#                    size = 1:10),
-#                shape = 21)) +
-#   guides(colour = guide_colourbar(position = "bottom"),
-#          size = guide_legend(position = "top"))
-# ggdraw() + draw_grob(get_legend(test_plot))
-# get_legend(ggplot())
+##  Prepare parallel environment
+# Windows
+# cl <- makeCluster(detectCores() - 1)
+# clusterEvalQ(cl, {
+#   library(sf)
+#   library(tidyverse)
+#   library(terra)
+#   library(tidyterra)
+#   library(colorspace)
+#   library(resmush)
+#   library(cowplot)})
+# Unix
+cl <- detectCores() - 1
 
+# Override buggy cowplot::get_legend (comment out if not needed)
+get_legend <- function(plot){
+  legends <- get_plot_component(plot, "guide-box", return_all = T)
+  legends_new <- list()
+  for(i in 1:length(legends)){
+    if(!("zeroGrob" %in% class(legends[[i]]))) legends_new <- c(legends_new, list(legends[[i]]))
+  }
+  if(length(legends_new) > 0){
+    do.call(cbind, legends_new)
+  } else{
+    return(legends[[1]])
+  }
+}
+# Test updated function
+(test_plot <- ggplot()+
+    geom_point(aes(x = 1:10, y = 1:10,
+                   colour = 1:10,
+                   size = 1:10),
+               shape = 21)) +
+  guides(colour = guide_colourbar(position = "bottom"),
+         size = guide_legend(position = "top"))
+ggdraw() + draw_grob(get_legend(test_plot))
+get_legend(ggplot())
+# Export to cluster (on Windows)
+# clusterExport(cl, varlist = "get_legend")
 
 # Load ponds and time-series
 ponds <- read_sf("data/pond_polys/ponds_for_time_series.gpkg")
@@ -884,6 +901,17 @@ composite_plot <- function(combination,
 
 # Test: composite_plot(pond_time_series_ids %>% filter(ts_id == "cbh_031"), manuscript_legend = T)
 
+# Export helper functions to cluster on Windows
+# clusterExport(cl, varlist = c(
+#   "get_legend",
+#   "plot_pond_rgb",
+#   "plot_pond_dsm", 
+#   "legend_rgb",
+#   "legend_dsm",
+#   "legend_manuscript",
+#   "legend_manuscript2"))
+
+# Generate plots if requested
 if(generate_plots){
   # Remove previous plots (if they exist)
   list.files("figures/cbh/individual_ponds/", full.names = T) %>% file.remove()
@@ -892,7 +920,7 @@ if(generate_plots){
   ## Generate plots for all unique ponds
   pond_time_series_ids %>%
     split(., .$ts_id) %>%
-    pblapply(., composite_plot, manuscript_legend = T, add_caption = T, cl = 31)
+    pblapply(., composite_plot, manuscript_legend = T, add_caption = T, cl = cl)
 }
 
 if(generate_plots){
@@ -903,3 +931,5 @@ if(generate_plots){
     pblapply(., composite_plot, manuscript_legend = T, add_caption = T)
 }
 
+# Stop cluster on Windows
+# stopCluster(cl)

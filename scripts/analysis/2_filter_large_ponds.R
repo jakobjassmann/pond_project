@@ -11,6 +11,21 @@ library(tidyterra)
 library(ggplot2)
 library(cowplot)
 
+##  Prepare parallel environment
+# Windows
+# library(parallel)
+# cl <- makeCluster(detectCores() - 1)
+# clusterEvalQ(cl, {
+#   library(sf)
+#   library(tidyverse)
+#   library(terra)
+#   library(units)
+#   library(tidyterra)
+#   library(ggplot2)
+#   library(cowplot)})
+# Unix
+cl <- detectCores() - 1
+
 ## Identify minimum pond area in training dataset
 # Load training data
 cbh_polys <- read_sf("data/training_polygons/cbh_training.gpkg") %>%
@@ -73,7 +88,7 @@ get_pond_polys <- function(pred_file, site = NA){
   if(nrow(water_polys) == 0) return(NULL)
   
   # calculate area for each polygon
-  water_polys$area <-st_area(water_polys)
+  water_polys$area <- st_area(water_polys)
   
   # Add metadata colums
   water_polys$site <- site
@@ -84,7 +99,7 @@ get_pond_polys <- function(pred_file, site = NA){
 }
 
 # Get polygons for all sites
-pond_polys <- pblapply(preds_rasters, get_pond_polys, cl = 31) %>% bind_rows()
+pond_polys <- pblapply(preds_rasters, get_pond_polys, cl = cl) %>% bind_rows()
 
 # Number of pond polys above a threshold
 pond_polys_n_by_size <- pond_polys %>% 
@@ -145,6 +160,8 @@ pond_polys_to_raster <- function(pond_polys_sf, rast_files = preds_rasters){
     # return raster
     return(pred_rast)
 }
+# Export function to cluster on Windows
+# clusterExport(cl, varlist = "pond_polys_to_raster")
 
 # Write out polys filtered by size (as rasters)
 # Generate filtered rasters
@@ -165,7 +182,7 @@ pond_polys_filtered_size %>%
                 overwrite = T)
     return(NULL)
   }, 
-  cl = 31)
+  cl = cl)
 
 # Copy empty rasters for the rdg years without ponds
 list.files("data/drone_data/rdg/preds", full.names = T) %>%
@@ -401,7 +418,7 @@ pond_time_series_ids <- pond_time_series_ids %>%
              combination = list(combination))
     # Return updated pond_ts object
     return(pond_ts)
-  }, cl = 31) %>% 
+  }, cl = cl) %>% 
   bind_rows() %>% 
   # Remove time-series with less than three years of observations
   filter(n_years >= 3)
@@ -475,6 +492,7 @@ ponds_for_time_series %>%
                 overwrite = T)
     return(NULL)
   },
-  cl = 31)
+  cl = cl)
 
-
+# Stop cluster on Windows
+# stopCluster(cl)

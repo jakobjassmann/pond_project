@@ -130,13 +130,17 @@ gen_preds_thres <- function(threshold_val, training_data = training, cv = FALSE)
   return(results)
 }
 
-# Prepare parallel environment (windows)
-cl <- makeCluster(15)
-clusterEvalQ(cl, {
-  library("caret")
-  library("dplyr")
-  library("terra")})
-clusterEvalQ(cl, set.seed(45))
+##  Prepare parallel environment
+# Windows
+# cl <- makeCluster(detectCores() - 1)
+# clusterEvalQ(cl, {
+#   library("caret")
+#   library("dplyr")
+#   library("terra")})
+# clusterEvalQ(cl, set.seed(45))
+# Unix
+cl <- detectCores() - 1
+set.seed(45)
 
 ## Generate predictions for the whole range of thresholds 
 
@@ -158,13 +162,13 @@ threshold_preds_cbh <- pblapply(threshold_vals,
 threshold_preds_tlb <- pblapply(threshold_vals,
                                 gen_preds_thres,
                                 training_data = training_tlb,
-                                cl = 31) %>% bind_rows()
+                                cl = cl) %>% bind_rows()
 
 # Generate predictions - rdg site-specific threshold identification
 threshold_preds_rdg <- pblapply(threshold_vals,
                                 gen_preds_thres,
                                 training_data = training_rdg,
-                                cl = 31) %>% bind_rows()
+                                cl = cl) %>% bind_rows()
 
 # Generate predictions - raster-specific threshold identification
 thresholds_site <- training %>% 
@@ -339,5 +343,5 @@ pblapply(raster_files_bcc, function(rast_file) {
   return(NULL)
 }, cl = cl)
 
-# Stop cluster
-stopCluster(cl)
+# Stop cluster on Windows
+# stopCluster(cl)
