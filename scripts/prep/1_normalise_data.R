@@ -206,9 +206,9 @@ image_list <- data.frame(
 image_list$image_no <- 1:nrow(image_list)
 
 # create output directories
-dir.create("data/dronde_data/cbh/norm")
-dir.create("data/dronde_data/tlb/norm")
-dir.create("data/dronde_data/rdg/norm")
+dir.create("data/drone_data/cbh/norm")
+dir.create("data/drone_data/tlb/norm")
+dir.create("data/drone_data/rdg/norm")
 
 # Normalise all rasters using the helper function defined at top of script
 pblapply(
