@@ -7,9 +7,9 @@ library(sf)
 library(terra)
 
 # Load rasters
-cbh <- read_sf("data/drone_time_series/cbh_timeseries/cbh_study_aoi.shp")
-tlb <- read_sf("data/drone_time_series/tlb_timeseries/tlb_study_aoi.shp")
-rdg <- read_sf("data/drone_time_series/rdg_timeseries/rdg_study_aoi.shp")
+cbh <- read_sf("data/drone_data/cbh/cbh_study_aoi.shp")
+tlb <- read_sf("data/drone_data/tlb/tlb_study_aoi.shp")
+rdg <- read_sf("data/drone_data/rdg/rdg_study_aoi.shp")
 
 # Calculate width and height of each area
 cat(
@@ -40,7 +40,7 @@ cbh_grid <- rast(cbh_grid_ext, nrows = 5, ncols = 5, crs = crs(cbh)) %>%
     st_as_sf()
 plot(cbh_grid)
 plot(cbh, add = T, col = "red")
-write_sf(cbh_grid, "data/training/cbh_grid.gpkg")
+write_sf(cbh_grid, "data/training_polygons/cbh_grid.gpkg")
 
 # Generate polygons grid tlb
 tlb_centroid <- st_centroid(tlb) %>% st_coordinates()
@@ -53,7 +53,7 @@ tlb_grid <- rast(tlb_grid_ext, nrows = 5, ncols = 5, crs = crs(tlb)) %>%
     st_as_sf()
 plot(tlb_grid)
 plot(tlb, add = T, col = "red")
-write_sf(tlb_grid, "data/training/tlb_grid.gpkg")
+write_sf(tlb_grid, "data/training_polygons/tlb_grid.gpkg")
 
 # Generate polygons grid rdg
 rdg_centroid <- st_centroid(rdg) %>% st_coordinates()
@@ -66,11 +66,20 @@ rdg_grid <- rast(rdg_grid_ext, nrows = 5, ncols = 5, crs = crs(rdg)) %>%
     st_as_sf()
 plot(rdg_grid)
 plot(rdg, add = T, col = "red")
-write_sf(rdg_grid, "data/training/rdg_grid.gpkg")
+write_sf(rdg_grid, "data/training_polygons/rdg_grid.gpkg")
 
-# The plan will be to mark all cells for 2014 (in space)
-# Then mark 3 cells per year.
-# Here we generate the coordinates of these:
+## !!! Below is the legacy code for generating a random sample of cells to
+## annotate for each site-year combination. This approach was used for the
+## inital set of polygons to reduce bias in the annotations. However, 
+## this approach did not work well for all drone rasters and further training 
+## polygons were then added iteratively by targeting cells with poor 
+## performance of the classifier. 
+
+# First
+# Generate a random sample of three cells per sit-year combination to annotate
+# Then fill in as needed.
+
+# Get sample of 3 cells per year-site combination
 years <- c(2014,2016:2021)
 sites <- c("cbh", "tlb", "rdg")
 set.seed(21)
@@ -79,10 +88,10 @@ sample_combos <- map(sites, function(site) {
         data.frame(site = site, year = y, cells = sample(1:25, 3))
     })
 }) %>% bind_rows()
-write_csv(sample_combos, "data/training/grid_cells_to_annotate.csv")
+write_csv(sample_combos, "data/training_polygons/grid_cells_to_annotate.csv")
 # Cell numbering starting top-left
 
-# generate some extra data for the outlier sites
+# generate some extra data for the poorly performing cbh site
 # CHH 2019_b
 sample(1:25, 3)
 
@@ -97,7 +106,7 @@ sample_combos <- map(sites, function(site) {
 }) %>%
     bind_rows() %>%
         arrange(site, year)
-write_csv(sample_combos, "data/training/grid_cells_to_annotate_2.csv")
+write_csv(sample_combos, "data/training_polygons/grid_cells_to_annotate_2.csv")
 
 # one more cell for cbh 2016 as one was double counted
 sample(1:25,1)
@@ -124,7 +133,7 @@ sample_combos <- map2(years, site, function(y, site) {
     }) %>%
     bind_rows() %>%
         arrange(site, year)
-write_csv(sample_combos, "data/training/grid_cells_to_annotate_tlb.csv")
+write_csv(sample_combos, "data/training_polygons/grid_cells_to_annotate_tlb.csv")
 
 site <- "rdg"
 years <- c("2014", "2017", "2018", "2019_a", "2019_c", "2020", "2021")
@@ -133,7 +142,7 @@ sample_combos <- map2(years, site, function(y, site) {
     }) %>%
     bind_rows() %>%
         arrange(site, year)
-write_csv(sample_combos, "data/training/grid_cells_to_annotate_rdg.csv")
+write_csv(sample_combos, "data/training_polygons/grid_cells_to_annotate_rdg.csv")
 
 #  tlb 2019_a did not have enought water (few ponds) generating some extra cells here
 sample(c(3, 4, 11, 16, 17), 2)
@@ -162,3 +171,6 @@ sample(c(1:25), 1)
 # and one addtional one
 set.seed(34)
 sample(c(3,4,16,17),1)
+
+# Furhter cells were added iteratively, resulting in the final set of 
+# training annotations as outlined in Table S3. 
