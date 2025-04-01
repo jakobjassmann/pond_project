@@ -1,6 +1,7 @@
-# Script to prepare grid for training data production
-# !! The grid files are already included as version controlled files 
+# Script to prepare regular grids to help with manual training data annotations
+# !! The grid files are also included as version controlled files 
 # !! in this repository: /data/training_polygons/*_grid.gpkg
+# !! This script does not need to be run and ist kept for legacy reasons only. 
 # Jakob J. Assmann 4 October 2023
 
 # Dependencies
