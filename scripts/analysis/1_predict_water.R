@@ -299,8 +299,10 @@ dir.create("data/drone_data/cbh/preds/")
 dir.create("data/drone_data/tlb/preds/")
 dir.create("data/drone_data/rdg/preds/")
 
-# Generate prediction rasters
+# Export thershold variable to cluster if working on Windows
 # clusterExport(cl, varlist = "best_thresh_site_year")
+
+# Generate prediction rasters
 pblapply(raster_files_bcc, function(rast_file) {
   year_interest <- gsub(".*/[a-z]{3}_([0-9]{4}.*)\\.tif", "\\1", rast_file)
   site_interest <- gsub(".*(cbh|tlb|rdg).*", "\\1", rast_file)
