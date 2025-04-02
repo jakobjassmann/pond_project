@@ -2,61 +2,80 @@
 # Jakob J. Assmann jakob.assmann@uzh.ch 27 October 2022
 
 # Dependencies
-reticulate::use_condaenv("rgee")
 library(tidyverse)
 library(ggplot2)
-library(patchwork)
+#library(patchwork)
 library(cowplot)
-library(rgee)
 library(sf)
 library(lubridate)
 library(SPEI)
+library(polite)
+library(rvest)
+# For (optional) legacy code - load rgee
+# reticulate::use_condaenv("rgee")
+# library(rgee)
 
 # Prep folder
 dir.create("data/climate_data")
-
-# Downlad climate data for Chokurdah from GHCN-D via KNMI
-# Source URLS obtained from:
+ 
+# Download climate data for Chokurdah from GHCN-D via KNMI
+# download.file("https://climexp.knmi.nl/data/vgdcnRSM00021946.dat",
+#               "data/climate_data/vgdcnRSM00021946.dat")
+# download.file("https://climexp.knmi.nl/data/pgdcnRSM00021946.dat",
+#               "data/climate_data/pgdcnRSM00021946.dat")
+# download.file("https://climexp.knmi.nl/data/dgdcnRSM00021946.dat",
+#               "data/climate_data/dgdcnRSM00021946.dat")
+# !!! This now needs to be done manually !!!
+# Open URLs below in web browser, confirm your're human and download the
+# "raw data" files, confirm file names match the above. 
 # Temp: https://climexp.knmi.nl/gdcntave.cgi?id=someone@somewhere&WMO=RSM00021946&STATION=CHOKURDAH&extraargs=
 # Precip: https://climexp.knmi.nl/gdcnprcp.cgi?id=someone@somewhere&WMO=RSM00021946&STATION=CHOKURDAH&extraargs=
 # Snow depth: https://climexp.knmi.nl/gdcnsnwd.cgi?id=someone@somewhere&WMO=RSM00021946&STATION=CHOKURDAH&extraargs=
-download.file("https://climexp.knmi.nl/data/vgdcnRSM00021946.dat",
-              "data/climate/vgdcnRSM00021946.dat")
-download.file("https://climexp.knmi.nl/data/pgdcnRSM00021946.dat",
-              "data/climate/pgdcnRSM00021946.dat")
-download.file("https://climexp.knmi.nl/data/dgdcnRSM00021946.dat",
-              "data/climate/dgdcnRSM00021946.dat")
-# And also from ECA&D
+# ECAD citation
+# “We acknowledge the data providers in the ECA&D project.
+# Klein Tank, A.M.G. and Coauthors, 2002. Daily dataset of 20th-century surface air
+# temperature and precipitation series for the European Climate Assessment. Int. J. of Climatol.,
+# 22, 1441-1453.
+# Data and metadata available at https://www.ecad.eu”
+
+
+# Same for Climate data from ECA&D
+# download.file("https://climexp.knmi.nl/data/teca3195.dat",
+#               "data/climate_data/teca3195.dat")
+# download.file("https://climexp.knmi.nl/data/peca3195.dat",
+#               "data/climate_data/peca3195.dat")
+# !!! This now needs to be done manually !!!
+# Open URLs below in web browser, confirm your're human and download the
+# "raw data" files, confirm file names match the above. 
 # Temp: https://climexp.knmi.nl/ecatemp.cgi?id=someone@somewhere&WMO=3195&STATION=CHOKURDAH&extraargs=
 # Precip: https://climexp.knmi.nl/ecaprcp.cgi?id=someone@somewhere&WMO=3195&STATION=CHOKURDAH&extraargs=
-download.file("https://climexp.knmi.nl/data/teca3195.dat",
-              "data/climate/teca3195.dat")
-download.file("https://climexp.knmi.nl/data/peca3195.dat",
-              "data/climate/peca3195.dat")
+# Open URLs below in webbrowser, confirm your're human and download the
+# "raw data" files, confirm file names match the above. 
+# Citation GHCN-D: Menne, Matthew J., Imke Durre, Bryant Korzeniewski, Shelley McNeill, Kristy Thomas, Xungang Yin, Steven Anthony, Ron Ray, Russell S. Vose, Byron E.Gleason, and Tamara G. Houston (2012): Global Historical Climatology Network - Daily (GHCN-Daily), Version 3. [indicate subset used]. NOAA National Climatic Data Center. doi:10.7289/V5D21VHZ [access date].
 
 # Read and parse data
-temp <- read_table("data/climate/vgdcnRSM00021946.dat",
+temp <- read_table("data/climate_data/vgdcnRSM00021946.dat",
                    skip = 21,
                    col_names = F) %>%
   set_names(c("year", "month", "day", "temp")) %>%
   mutate(date = as.Date(paste(year, month, day), format = "%Y %m %d"))
-temp_ecad <- read_table("data/climate/teca3195.dat",
+temp_ecad <- read_table("data/climate_data/teca3195.dat",
                    skip = 21,
                    col_names = F) %>%
   set_names(c("year", "month", "day", "temp")) %>%
   mutate(date = as.Date(paste(year, month, day), format = "%Y %m %d"))
-precip <- read_table("data/climate/pgdcnRSM00021946.dat",
+precip <- read_table("data/climate_data/pgdcnRSM00021946.dat",
                    skip = 22,
                    col_names = F) %>%
   set_names(c("year", "month", "day", "precip")) %>%
   mutate(date = as.Date(paste(year, month, day), format = "%Y %m %d"))
-precip_ecad <- read_table("data/climate/pgdcnRSM00021946.dat",
+precip_ecad <- read_table("data/climate_data/pgdcnRSM00021946.dat",
                      skip = 22,
                      col_names = F) %>%
   set_names(c("year", "month", "day", "precip")) %>%
   mutate(date = as.Date(paste(year, month, day), format = "%Y %m %d"))
 
-snow_depth <- read_table("data/climate/dgdcnRSM00021946.dat",
+snow_depth <- read_table("data/climate_data/dgdcnRSM00021946.dat",
                      skip = 21,
                      col_names = F) %>%
   set_names(c("year", "month", "day", "snow_depth")) %>%
@@ -65,16 +84,17 @@ snow_depth <- read_table("data/climate/dgdcnRSM00021946.dat",
 # Merge into one
 climate <- full_join(temp, precip) %>%
   full_join(snow_depth) %>%
-  relocate(date) 
+  relocate(date)
 climate_ecad <- full_join(temp_ecad, precip_ecad)
 
 # Quick graph to check validity
-(ggplot(climate) + geom_line(aes(x = date, y = temp))) /
-  (ggplot(climate) + geom_line(aes (x= date, y = precip))) /
-    (ggplot(climate) + geom_line(aes (x= date, y = snow_depth)))
-(ggplot(climate_ecad) + geom_line(aes(x = date, y = temp))) /
-  (ggplot(climate_ecad) + geom_line(aes (x= date, y = precip))) 
-  
+plot_grid((ggplot(climate) + geom_line(aes(x = date, y = temp))),
+  (ggplot(climate) + geom_line(aes (x= date, y = precip))),
+    (ggplot(climate) + geom_line(aes (x= date, y = snow_depth))))
+plot_grid(
+  (ggplot(climate_ecad) + geom_line(aes(x = date, y = temp))),
+  (ggplot(climate_ecad) + geom_line(aes (x= date, y = precip))))
+
 # Check for NAs
 sum(is.na(climate$temp))
 sum(is.na(climate$precip))
@@ -103,136 +123,9 @@ climate %>% filter(year >= 2019) %>% group_by(year, month) %>%
             na_precip = sum(is.na(precip)),
             na_snow_depth = sum(is.na(snow_depth))) %>%
   view()
-# Conclusion: GHCN-D data is pretty patchy past 2019 
+# Conclusion: GHCN-D data is pretty patchy past 2019
 # EACD data only available till 2019, but more complete
 # -> use ERA5 reanalysis data for gap-fill?
-
-# ### Let's get the ERA5 data from the GEE
-# 
-# # Set site coordinates 
-# chokurdah <- data.frame(
-#   name = "Chokrudah",
-#   lat = 70.62,
-#   long = 147.88
-# ) %>%
-#   st_as_sf(coords = c("long", "lat"), crs = 4326)
-# 
-# # Initialize EE
-# ee_Initialize()
-# 
-# # Get ERA5 image collection (filter 2000-2022)
-# era5land <- ee$ImageCollection("ECMWF/ERA5_LAND/HOURLY")$
-#   select(list("temperature_2m", "total_precipitation"))
-# 
-# # send Chokurdah coordinates to EE
-# chokurdah_ee <- sf_as_ee(chokurdah)
-# 
-# # Extract time-series (using drive here to let it run in the background)
-# climate_era5land <- era5land$map(function(image){
-#   climate <- image$reduceRegion(ee$Reducer$first(), chokurdah_ee)
-#   climate <- climate$set("date_time", image$get("system:index"))
-#   ee$Feature(NULL, climate)
-#   }) 
-# climate_era5land_task <- ee_table_to_drive(climate_era5land,
-#                   description = "chokurdah_era5_export",
-#                   folder = "chokurdah_era5_export",
-#                   )
-# climate_era5land_task$start()                           
-# climate_era5land_task <- ee_check_task_status(task = "AES6MWH7AK2EGF6V4BDWQ4AW")
-# ee_drive_to_local(task = climate_era5land_task, 
-#                   dsn = "data/climate/ERA5_land_export_Chokurdah.csv")
-# 
-# # Load and process data
-# era5_data <- read_csv("data/climate/ERA5_land_export_Chokurdah.csv") %>%
-#   select(-`system:index`, .geo) %>%
-#   mutate(date = as.Date(format(date_time, "%Y-%m-%d"))) %>%
-#     group_by(date) %>%
-#     summarize(temp = mean(temperature_2m),
-#               precip = sum(total_precipitation )) %>%
-#   mutate(year = format(date, "%Y"),
-#          month = format(date, "%m"),
-#          doy = format(date, "%j")) 
-# 
-# era5_monthly <- era5_data %>%
-#   group_by(year, month) %>%
-#   summarize(mean_temp = mean(temp),
-#             month_precip = sum(precip)) %>%
-#   mutate(month_year = as.Date(paste0(year, "-", month, "-15")))%>%
-#   filter(year >= 1965 & year < 2022)
-# 
-# era5_annual <- era5_data %>%
-#   mutate(year = as.numeric(year)) %>%
-#   group_by(year) %>%
-#   summarize(annual_mean_temp = mean(temp) - 273.15,
-#             annual_precip = sum(precip)) %>%
-#   filter(year >= 1965 & year < 2022)
-# 
-# era5_annual <- era5_data %>%
-#   mutate(year_precip = case_when(
-#     as.numeric(month) >= 8 ~ as.numeric(year) - 1,
-#     TRUE ~ as.numeric(year)
-#   )) %>% 
-#   group_by(year_precip) %>%
-#   summarize(precip_season = sum(precip))  %>%
-#   filter(year_precip >= 1965 & year_precip < 2022) %>%
-#   mutate(year = year_precip) %>%
-#   full_join(era5_annual)
-#     
-# era5_annual <- era5_data %>%
-#   mutate(year_precip = case_when(
-#     as.numeric(month) >= 9 ~ as.numeric(year) - 1,
-#     TRUE ~ as.numeric(year)
-#   )) %>% 
-#   filter(month %in% c(10,11,12,1,2,3)) %>%
-#   group_by(year_precip) %>%
-#   summarize(precip_winter = sum(precip))  %>%
-#   filter(year_precip >= 1965 & year_precip < 2022) %>%
-#   mutate(year = year_precip) %>%
-#   full_join(era5_annual)
-# 
-# ggplot(era5_annual) +
-#   geom_point(aes(x = year, y = annual_mean_temp)) +
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-# ggplot(era5_annual) +
-#   geom_point(aes(x = year, y = annual_precip)) +
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-# ggplot(era5_annual) +
-#   geom_point(aes(x = as.character(year), y = precip_season)) +
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-# ggplot(era5_annual) +
-#   geom_point(aes(x = as.character(year), y = precip_winter)) +
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-# 
-# ggplot(era5_monthly %>% filter(year >= 2000)) +
-#   geom_col(aes(x = month_year, y = month_precip)) +
-#   scale_x_date(date_breaks = "year")+
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-# 
-# ggplot(precip %>% group_by(year, month) %>% summarise(precip = sum(precip)) %>%
-#          mutate(month_year = as.Date(paste0(year, "-", month, "-15")))
-#        %>% filter(year >= 2000)) +
-#   geom_col(aes(x = month_year, y = precip), fill = "red", colour = "red") +
-#   geom_col(aes(x = month_year, y = month_precip * 10),
-#            inherit.aes = F, 
-#            data = era5_monthly %>% filter(year >= 2000),
-#            fill = NA,
-#            colour = "blue") + 
-#   scale_x_date(date_breaks = "year")+
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-#   
-# 
-#   # If interrupted copy over task outpur manuall from drive.
-# # Then read in ERA5 export and parse
-# climate_era5 <- t(as.matrix(read.csv("data/climate/ERA5_exports_Chokurdah.csv")))
-# climate_era5 <- as.data.frame(climate_era5)
-# climate_era5$date <- row.names(climate_era5)
-# row.names(climate_era5) <- NULL
-# climate_era5$var <- gsub("X[0-9]*_(.*)", "\\1", climate_era5$date)
-# climate_era5$date <- as.Date(gsub("X([0-9]*)_.*", "\\1", climate_era5$date), 
-#                              format = "%Y%m%d")
-# climate_era5 <- climate_era5[-1,]
-# climate_era5 <- climate_era5[c(-nrow(climate_era5),-nrow(climate_era5)-1),]
-# pivot_wider(climate_era5, names_from = var, values_from = V1)
 
 # Webscrape climate data from http://www.pogodaiklimat.ru (recommended by Ramona)
 # Imitate polite scraping session using bow
@@ -247,7 +140,7 @@ years_months <- expand.grid(2011:2021,1:12) %>%
   arrange(year, month)
 
 # Create output directory
-dir.create("data/climate/pik_ru_monthly")
+dir.create("data/climate_data/pik_ru_monthly")
 
 # Scrape over year and month combinations
 chokurdakh_weather <- map2(years_months$year, 
@@ -305,7 +198,7 @@ chokurdakh_weather <- map2(years_months$year,
                             select(date_time, temp = `Т(С)`, precip = `R(мм)`)
                           
                           # Save parsed data
-                          write_csv(parsed_data, paste0("data/climate/pik_ru_monthly/", year, "_", month, ".csv"))
+                          write_csv(parsed_data, paste0("data/climate_data/pik_ru_monthly/", year, "_", month, ".csv"))
                           
                           # Return parsed data
                           return(parsed_data)
@@ -315,7 +208,7 @@ chokurdakh_weather <- map2(years_months$year,
 
 # Save to CSV file
 write_csv(chokurdakh_weather,
-          "data/climate/pik_exports.csv")
+          "data/climate_data/pik_exports.csv")
 # chokurdakh_weather <- read_csv("data/climate/pik_exports.csv")
 # Add local time-zone variable
 chokurdakh_weather$date_time_local <- with_tz(chokurdakh_weather$date_time, tzone = "Etc/GMT-11")
@@ -465,7 +358,7 @@ climate_ecad_by_year <- filter(climate_ecad_by_year,
                                year != 1944)
 
 
-## Caluculate season summary statistics for each year - pik
+## Calculate season summary statistics for each year - pik
 pik_by_year <- chokurdakh_weather_daily %>%
   mutate(year = as.numeric(format(date, "%Y")),
          month = as.numeric(format(date, "%m"))) %>%
@@ -555,7 +448,7 @@ chok_annual_climate_final <- climate_ecad_by_year %>%
   bind_rows(filter(pik_by_year, year %in% c(2014, 2016, 2017, 2019:2021))) %>%
   arrange(year)
 write_csv(chok_annual_climate_final,
-          "data/climate/chok_annual_climate_final.csv")
+          "data/climate_data/chok_annual_climate_final.csv")
 
 ### Caluclate the SPEI
 
@@ -594,4 +487,132 @@ chok_annual_climate_final <- chok_annual_climate_final %>%
   full_join(select(spei, year, month, contains("spei"))%>% filter(month == 8) %>%
               select(-month))
 write_csv(chok_annual_climate_final,
-          "data/climate/chok_annual_climate_final.csv")
+          "data/climate_data/chok_annual_climate_final.csv")
+
+# ### Optional code to get ERA5 data from the GEE
+# 
+# # Set site coordinates 
+# chokurdah <- data.frame(
+#   name = "Chokrudah",
+#   lat = 70.62,
+#   long = 147.88
+# ) %>%
+#   st_as_sf(coords = c("long", "lat"), crs = 4326)
+# 
+# # Initialize EE
+# ee_Initialize()
+# 
+# # Get ERA5 image collection (filter 2000-2022)
+# era5land <- ee$ImageCollection("ECMWF/ERA5_LAND/HOURLY")$
+#   select(list("temperature_2m", "total_precipitation"))
+# 
+# # send Chokurdah coordinates to EE
+# chokurdah_ee <- sf_as_ee(chokurdah)
+# 
+# # Extract time-series (using drive here to let it run in the background)
+# climate_era5land <- era5land$map(function(image){
+#   climate <- image$reduceRegion(ee$Reducer$first(), chokurdah_ee)
+#   climate <- climate$set("date_time", image$get("system:index"))
+#   ee$Feature(NULL, climate)
+#   }) 
+# climate_era5land_task <- ee_table_to_drive(climate_era5land,
+#                   description = "chokurdah_era5_export",
+#                   folder = "chokurdah_era5_export",
+#                   )
+# climate_era5land_task$start()                           
+# climate_era5land_task <- ee_check_task_status(task = "AES6MWH7AK2EGF6V4BDWQ4AW")
+# ee_drive_to_local(task = climate_era5land_task, 
+#                   dsn = "data/climate/ERA5_land_export_Chokurdah.csv")
+# 
+# # Load and process data
+# era5_data <- read_csv("data/climate/ERA5_land_export_Chokurdah.csv") %>%
+#   select(-`system:index`, .geo) %>%
+#   mutate(date = as.Date(format(date_time, "%Y-%m-%d"))) %>%
+#     group_by(date) %>%
+#     summarize(temp = mean(temperature_2m),
+#               precip = sum(total_precipitation )) %>%
+#   mutate(year = format(date, "%Y"),
+#          month = format(date, "%m"),
+#          doy = format(date, "%j")) 
+# 
+# era5_monthly <- era5_data %>%
+#   group_by(year, month) %>%
+#   summarize(mean_temp = mean(temp),
+#             month_precip = sum(precip)) %>%
+#   mutate(month_year = as.Date(paste0(year, "-", month, "-15")))%>%
+#   filter(year >= 1965 & year < 2022)
+# 
+# era5_annual <- era5_data %>%
+#   mutate(year = as.numeric(year)) %>%
+#   group_by(year) %>%
+#   summarize(annual_mean_temp = mean(temp) - 273.15,
+#             annual_precip = sum(precip)) %>%
+#   filter(year >= 1965 & year < 2022)
+# 
+# era5_annual <- era5_data %>%
+#   mutate(year_precip = case_when(
+#     as.numeric(month) >= 8 ~ as.numeric(year) - 1,
+#     TRUE ~ as.numeric(year)
+#   )) %>% 
+#   group_by(year_precip) %>%
+#   summarize(precip_season = sum(precip))  %>%
+#   filter(year_precip >= 1965 & year_precip < 2022) %>%
+#   mutate(year = year_precip) %>%
+#   full_join(era5_annual)
+#     
+# era5_annual <- era5_data %>%
+#   mutate(year_precip = case_when(
+#     as.numeric(month) >= 9 ~ as.numeric(year) - 1,
+#     TRUE ~ as.numeric(year)
+#   )) %>% 
+#   filter(month %in% c(10,11,12,1,2,3)) %>%
+#   group_by(year_precip) %>%
+#   summarize(precip_winter = sum(precip))  %>%
+#   filter(year_precip >= 1965 & year_precip < 2022) %>%
+#   mutate(year = year_precip) %>%
+#   full_join(era5_annual)
+# 
+# ggplot(era5_annual) +
+#   geom_point(aes(x = year, y = annual_mean_temp)) +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+# ggplot(era5_annual) +
+#   geom_point(aes(x = year, y = annual_precip)) +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+# ggplot(era5_annual) +
+#   geom_point(aes(x = as.character(year), y = precip_season)) +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+# ggplot(era5_annual) +
+#   geom_point(aes(x = as.character(year), y = precip_winter)) +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+# 
+# ggplot(era5_monthly %>% filter(year >= 2000)) +
+#   geom_col(aes(x = month_year, y = month_precip)) +
+#   scale_x_date(date_breaks = "year")+
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+# 
+# ggplot(precip %>% group_by(year, month) %>% summarise(precip = sum(precip)) %>%
+#          mutate(month_year = as.Date(paste0(year, "-", month, "-15")))
+#        %>% filter(year >= 2000)) +
+#   geom_col(aes(x = month_year, y = precip), fill = "red", colour = "red") +
+#   geom_col(aes(x = month_year, y = month_precip * 10),
+#            inherit.aes = F, 
+#            data = era5_monthly %>% filter(year >= 2000),
+#            fill = NA,
+#            colour = "blue") + 
+#   scale_x_date(date_breaks = "year")+
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+#   
+# 
+#   # If interrupted copy over task outpur manuall from drive.
+# # Then read in ERA5 export and parse
+# climate_era5 <- t(as.matrix(read.csv("data/climate/ERA5_exports_Chokurdah.csv")))
+# climate_era5 <- as.data.frame(climate_era5)
+# climate_era5$date <- row.names(climate_era5)
+# row.names(climate_era5) <- NULL
+# climate_era5$var <- gsub("X[0-9]*_(.*)", "\\1", climate_era5$date)
+# climate_era5$date <- as.Date(gsub("X([0-9]*)_.*", "\\1", climate_era5$date), 
+#                              format = "%Y%m%d")
+# climate_era5 <- climate_era5[-1,]
+# climate_era5 <- climate_era5[c(-nrow(climate_era5),-nrow(climate_era5)-1),]
+# pivot_wider(climate_era5, names_from = var, values_from = V1)
+
