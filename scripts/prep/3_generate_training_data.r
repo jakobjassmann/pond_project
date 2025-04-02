@@ -98,6 +98,7 @@ training_all %>% group_by(site, class) %>%
   summarise(n())
 
 # Save training data
+dir.create("data/training_data")
 write_csv(training_all, file = "data/training_data/training_all_df.csv")
 
 # Generate summary tables for supplementary materials
