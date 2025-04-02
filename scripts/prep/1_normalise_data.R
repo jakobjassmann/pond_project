@@ -231,34 +231,35 @@ copy_tags <- function(src){
 # Apply funciton to rasters
 map(
     image_list %>%
-        filter(!grepl(".*cbh_2014_byte.*", file)) %>% # Won't work for cbh_2014_byte see below
+        # filter(!grepl(".*cbh_2014_byte.*", file)) %>% # Previously this did not work, works now with newest version of exiftool / terra.
         pull(file),
     copy_tags
 )
-# Copy GPS tags only for cbh 2014
-# Get file path
-cbh_2014_file <- image_list %>%
-    filter(grepl(".*cbh_2014_byte.*", file)) %>%
-    pull(file)
-# Define target files
-chb_2014_target_file <- gsub("(.*)rgb(.*)", "\\1norm\\2", cbh_2014_file)
-# Load raster
-cbh_2014 <- rast(cbh_2014_file)
-# Duplicate
-chb_2014_target <- rast(chb_2014_target_file)
-# Assign tags
-ext(chb_2014_target) <- ext(cbh_2014)
-crs(chb_2014_target) <- crs(cbh_2014)
-# Write and re-write file
-writeRaster(chb_2014_target,
-    gsub("\\.tif", "_new\\.tiff", chb_2014_target_file),
-    overwrite = T,
-    NAflag = NA
-)
-rm(chb_2014_target)
-file.remove(chb_2014_target_file)
-file.copy(gsub("\\.tif", "_new\\.tiff", chb_2014_target_file), chb_2014_target_file)
-file.remove(gsub("\\.tif", "_new\\.tiff", chb_2014_target_file))
+
+# # Copy GPS tags only for cbh 2014
+# # Get file path
+# cbh_2014_file <- image_list %>%
+#     filter(grepl(".*cbh_2014_byte.*", file)) %>%
+#     pull(file)
+# # Define target files
+# chb_2014_target_file <- gsub("(.*)rgb(.*)", "\\1norm\\2", cbh_2014_file)
+# # Load raster
+# cbh_2014 <- rast(cbh_2014_file)
+# # Duplicate
+# chb_2014_target <- rast(chb_2014_target_file)
+# # Assign tags
+# ext(chb_2014_target) <- ext(cbh_2014)
+# crs(chb_2014_target) <- crs(cbh_2014)
+# # Write and re-write file
+# writeRaster(chb_2014_target,
+#     gsub("\\.tif", "_new\\.tiff", chb_2014_target_file),
+#     overwrite = T,
+#     NAflag = NA
+# )
+# rm(chb_2014_target)
+# file.remove(chb_2014_target_file)
+# file.copy(gsub("\\.tif", "_new\\.tiff", chb_2014_target_file), chb_2014_target_file)
+# file.remove(gsub("\\.tif", "_new\\.tiff", chb_2014_target_file))
 
 # Remove back ups from tag copying
 list.files("data/drone_data", full.names = T, recursive = T) %>%
