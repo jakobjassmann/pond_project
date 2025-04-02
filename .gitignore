@@ -57,7 +57,8 @@ vignettes/*.pdf
 /data/drone_data/tlb/*.r
 /data/drone_data/*.sh
 /data/planet_data/*.*
-/data/pond_polys/*.*
+/data/pond_polys/*.gpkg
+/data/pond_polys/*.Rda
 /data/training_data/
 /data/training_polygons/*.csv
 /data/web_data/*
