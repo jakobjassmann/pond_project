@@ -22,7 +22,7 @@ library(pbapply)
 #   library(colorspace)
 #   library(cowplot)})
 # Unix
-cl <- detectCores() - 1
+cl <- parallel::detectCores() - 1
 
 
 # Load ponds and time-series

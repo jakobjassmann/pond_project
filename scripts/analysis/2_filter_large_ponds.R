@@ -24,7 +24,7 @@ library(cowplot)
 #   library(ggplot2)
 #   library(cowplot)})
 # Unix
-cl <- detectCores() - 1
+cl <- parallel::detectCores() - 1
 
 ## Identify minimum pond area in training dataset
 # Load training data
