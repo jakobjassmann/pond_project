@@ -46,7 +46,7 @@ preds_rasts <- list.files("data/drone_data",
 get_diff <- function(points) {
     site_name <- unique(points$site)
     bounds <- points %>%
-        st_buffer(5, endCapStyle = "SQUARE") %>%
+        st_buffer(10, endCapStyle = "SQUARE") %>%
         st_union() %>%
         st_crop(st_bbox(rast(dsm_rasts[grepl(site_name, dsm_rasts)][1]))) %>%
         st_as_sf() %>%
@@ -126,17 +126,25 @@ height_diff_sum <- height_diff %>%
         max = max(diff_height),
         se = sd(diff_height) / sqrt(length(diff_height))
     )
+
+# Global mean
+mean(height_diff$diff_height)
+# -0.05785923
+sd(height_diff$diff_height)/sqrt(length(height_diff$diff_height))
+# 0.02609936
+
 # Visualsie
 vertical_plot <- ggplot(height_diff, aes(y = diff_height, x = site)) +
     geom_hline(yintercept = 0, linetype = "dashed") +
     geom_point(data = height_diff_sum, aes(y = mean), size = 2) +
-    geom_errorbar(data = height_diff_sum, aes(ymin = mean - se, ymax = mean + se), width = 0.25, ) +
+    geom_errorbar(data = height_diff_sum,
+        aes(ymin = mean - se, ymax = mean + se, x = site), width = 0.25, inherit.aes = F) +
     geom_point(aes(colour = site), size = 2) +
     scale_colour_manual(values = c("#FF369D", "#19CEE6")) +
     scale_y_continuous(limits = c(-0.3, 0.3), breaks = c(-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3)) +
     labs(x = "", y = "Vertical difference 2021-2014 [m]") +
     theme_cowplot() +
     theme(legend.position = "none")
-save_plot("figures/vertical_accuracy.png", vertical_plot,
+save_plot("figures/8_figure_S8.png", vertical_plot,
     base_asp = 1.6, bg = "white"
 )

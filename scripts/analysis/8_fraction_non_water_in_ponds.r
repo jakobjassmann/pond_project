@@ -44,6 +44,6 @@ geom_histogram(binwidth = 0.025) +
 scale_y_continuous(limits = c(0,3000)) +
 labs(x = "Fraction of non-water pixels in perimeter", y = "Number of Ponds") +
 theme_cowplot() 
-save_plot("figures/8_figure_S8.png", hist_fig, bg = "white")
+save_plot("figures/fraction_non_water_in_ponds.png", hist_fig, bg = "white")
 
 stopCluster(cl)
