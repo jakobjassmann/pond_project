@@ -116,7 +116,7 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
   annotate("text", 
            x = 0.1,
            y = 110,
-           label = "colonisation threshold\n < 18% (n = 84)",
+           label = "colonisation threshold\n> 0.1 m (18% of ponds)",
            hjust = - 0.1,
            vjust = 1,
            colour = "darkblue",
@@ -161,7 +161,7 @@ volume_gained_hist <- ggplot(pond_time_series_ids) +
   labs(x = "Mean gain in surface elevation (m)\n 2014 vs 2021", y = "Number of Ponds") +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
-  # scale_x_continuous(limits = c(-0.1, 0.4)) +
+  scale_x_continuous(limits = c(-0.1, 0.4)) +
   scale_y_continuous(limits = c(0, 150)) +
   # facet_wrap(~site_plot, scales = "free_y") +
   theme_cowplot() + 
@@ -240,7 +240,7 @@ plot_grid(
                                            site_plot == "high" ~ 100))) +
   geom_text(aes(x = 0.1,
                 y = height,
-                label = paste0("colonis. threshold\n < ", perc, "% (n = ", n, ")")),
+                label = paste0("colonis. threshold\n > 0.1 m (", perc, "%)")),
             hjust = - 0.1,
             vjust = 1,
             colour = "darkblue",
