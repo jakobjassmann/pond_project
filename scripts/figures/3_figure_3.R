@@ -40,6 +40,7 @@ source("scripts/figures/surface_volume_lost.R")
 
 # Source pond time series plotting functions
 source("scripts/figures/pond_timeseries_with_dsm.R")
+rm(generate_plots) # Remove switch variable to activate labels for manuscript
 
 # Calculate summary stats for pond change
 # Number of ponds where thermokarst was detected
@@ -151,7 +152,7 @@ pond_time_series_ids <- mutate(pond_time_series_ids,
   #     arrow = arrow(length = unit(0.03, "npc")),
   #     curvature = -0.5,
   # ) +
-  labs(x = "Mean drop in surface elevation (m)\n2014 vs. 2021", y = "Number of ponds") +
+  labs(x = "Mean drop in surface elevation (m)\n2014 vs. 2021", y = "Number of Ponds") +
   scale_colour_manual(values = site_col) +
   scale_fill_manual(values = site_col) +
   # scale_x_continuous(limits = c(-0.05, 0.55)) +

@@ -40,6 +40,7 @@ source("scripts/figures/surface_volume_gained.R")
 
 # Source pond time series plotting functions
 source("scripts/figures/pond_timeseries_with_dsm.R")
+rm(generate_plots) # Remove switch variable to activate labels for manuscript
 
 # Calculate summary stats for pond change
 # Number of ponds where thermokarst was detected
