@@ -7,9 +7,6 @@ library(sf)
 library(terra)
 library(ggplot2)
 library(cowplot)
-library(tidyterra)
-library(colorspace)
-library(resmush)
 
 ## Load data ----
 
