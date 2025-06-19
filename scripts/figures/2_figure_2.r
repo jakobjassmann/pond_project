@@ -147,8 +147,9 @@ combined_plot <-
             cv_hist,
             nrow = 1, ncol = 2,
             align = "hv", 
-            labels = letters[1:2],
-            label_size = 16)
+            labels = c("(a)", "(b)"),
+            hjust = -0.25,
+            label_size = 12)
 
 # Save plot
 save_plot("figures/2_figure_2.png", 

@@ -33,14 +33,16 @@ marings_perc2 <- list(t = 0,
         theme(plot.margin = margin(marings_perc, unit = "inch")),
       water_prop_plot + theme(plot.margin = margin(marings_perc, unit = "inch")),
       nrow = 1,
-      labels = letters[1:2],
-      label_size = 20
+      labels = c("(a)", "(b)"),
+      label_size = 18,
+      hjust = 0
     ),
     ggdraw() + draw_image("figures/preds_plot_all.png", scale = 1) +
       theme(plot.margin = margin(marings_perc2, unit = "inch")),
     nrow = 2,
-    labels = c("", "c"),
-    label_size = 20))
+    labels = c("", "(c)"),
+    hjust = 0,
+    label_size = 18))
   } %>%
   save_plot("figures/1_figure_1.png", 
                    .,
